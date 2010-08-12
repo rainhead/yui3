@@ -705,7 +705,7 @@ proto = {
         if (len) {
             missing = Y.Object.keys(YArray.hash(missing));
             len = missing.length;
-            Y.log('Modules missing: ' + missing + ', ' + missing.length, 'info', 'yui');
+            Y.message('Modules missing: ' + missing + ', ' + missing.length, 'warn', 'yui');
         }
 
             // console.log(Y._rls(args));
