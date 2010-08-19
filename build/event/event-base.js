@@ -243,7 +243,7 @@ Y.DOMEventFacade = function(ev, currentTarget, wrapper) {
     wrapper = wrapper || {};
 
     var e = ev, ot = currentTarget, d = Y.config.doc, b = d.body,
-        x = e.pageX, y = e.pageY, c, t, 
+        x = e.pageX, y = e.pageY, c, t, de = d.documentElement,
         overrides = wrapper.overrides || {};
 
     this.altKey   = e.altKey;
@@ -260,9 +260,9 @@ Y.DOMEventFacade = function(ev, currentTarget, wrapper) {
         x = e.clientX || 0;
         y = e.clientY || 0;
 
-        if (ua.ie) {
-            x += Math.max(d.documentElement.scrollLeft, b.scrollLeft);
-            y += Math.max(d.documentElement.scrollTop, b.scrollTop);
+        if (ua.ie && ua.ie < 9) {
+            x += Math.max(de.scrollLeft, b.scrollLeft);
+            y += Math.max(de.scrollTop, b.scrollTop);
         }
     }
 
@@ -1242,13 +1242,19 @@ Event._interval = setInterval(Y.bind(Event._poll, Event), Event.POLL_INTERVAL);
          */           
         getListeners: function(el, type) {
             var ek = Y.stamp(el, true), evts = _el_events[ek],
-                results=[] , key = (type) ? 'event:' + ek + type : null;
+                results=[] , key = (type) ? 'event:' + ek + type : null,
+                adapters = _eventenv.plugins;
 
             if (!evts) {
                 return null;
             }
 
             if (key) {
+                // look for synthetic events
+                if (adapters[type] && adapters[type].eventDef) {
+                    key += '_synth';
+                }
+
                 if (evts[key]) {
                     results.push(evts[key]);
                 }

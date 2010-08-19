@@ -17,6 +17,10 @@ YUI.add('selection', function(Y) {
     INNER_HTML = 'innerHTML',
     FONT_FAMILY = 'fontFamily';
 
+    if (Y.UA.ie) {
+        textContent = 'nodeValue';
+    }
+
     Y.Selection = function() {
         var sel, par, ieNode, nodes, rng, i;
 
@@ -28,9 +32,7 @@ YUI.add('selection', function(Y) {
         this._selection = sel;
         
         if (sel.pasteHTML) {
-            textContent = 'nodeValue';
             this.isCollapsed = (sel.compareEndPoints('StartToEnd', sel)) ? false : true;
-
             if (this.isCollapsed) {
                 this.anchorNode = this.focusNode = Y.one(sel.parentElement());
                 
@@ -39,14 +41,14 @@ YUI.add('selection', function(Y) {
                 rng = sel.duplicate();
 
                 for (i = 0; i < nodes.length; i++) {
-                    rng.select(nodes[i]);
+                    //This causes IE to not allow a selection on a doubleclick
+                    //rng.select(nodes[i]);
                     if (rng.inRange(sel)) {
                        ieNode = nodes[i]; 
                     }
                 }
 
                 this.ieNode = ieNode;
-                
                 
                 if (ieNode) {
                     if (ieNode.nodeType !== 3) {
@@ -91,16 +93,34 @@ YUI.add('selection', function(Y) {
     * @method filter
     */
     Y.Selection.filter = function(blocks) {
+        var startTime = (new Date()).getTime();
+
         var nodes = Y.all(Y.Selection.ALL),
             baseNodes = Y.all('strong,em'),
+            classNames = {}, cssString = '',
             ls;
 
+        var startTime1 = (new Date()).getTime();
         nodes.each(function(n) {
+            var raw = Y.Node.getDOMNode(n);
+            if (raw.style[FONT_FAMILY]) {
+                classNames['.' + n._yuid] = raw.style[FONT_FAMILY];
+                n.addClass(n._yuid);
+                raw.style[FONT_FAMILY] = '';
+                raw.removeAttribute('face');
+                if (raw.getAttribute('style') === '') {
+                    raw.removeAttribute('style');
+                }
+                //This is for IE
+                if (raw.getAttribute('style')) {
+                    if (raw.getAttribute('style').toLowerCase() === 'font-family: ') {
+                        raw.removeAttribute('style');
+                    }
+                }
+            }
+            /*
             if (n.getStyle(FONT_FAMILY)) {
-                var sheet = new Y.StyleSheet('editor');
-                sheet.set('.' + n._yuid, {
-                    fontFamily: n.getStyle(FONT_FAMILY)
-                });
+                classNames['.' + n._yuid] = n.getStyle(FONT_FAMILY);
                 n.addClass(n._yuid);
                 n.removeAttribute('face');
                 n.setStyle(FONT_FAMILY, '');
@@ -112,7 +132,15 @@ YUI.add('selection', function(Y) {
                     n.removeAttribute('style');
                 }
             }
+            */
         });
+        var endTime1 = (new Date()).getTime();
+
+        Y.each(classNames, function(v, k) {
+            cssString += k + ' { font-family: ' + v.replace(/"/gi, '') + '; }';
+        });
+        Y.StyleSheet(cssString, 'editor');
+
         
         //Not sure about this one?
         baseNodes.each(function(n, k) {
@@ -136,6 +164,7 @@ YUI.add('selection', function(Y) {
         if (blocks) {
             Y.Selection.filterBlocks();
         }
+        var endTime = (new Date()).getTime();
     };
 
     /**
@@ -144,6 +173,7 @@ YUI.add('selection', function(Y) {
     * @method filterBlocks
     */
     Y.Selection.filterBlocks = function() {
+        var startTime = (new Date()).getTime();
         var childs = Y.config.doc.body.childNodes, i, node, wrapped = false, doit = true,
             sel, single, br, divs, spans, c, s;
 
@@ -153,8 +183,8 @@ YUI.add('selection', function(Y) {
                 if (!node.test(Y.Selection.BLOCKS)) {
                     doit = true;
                     if (childs[i].nodeType == 3) {
-                        c = childs[i].textContent.match(Y.Selection.REG_CHAR);
-                        s = childs[i].textContent.match(Y.Selection.REG_NON);
+                        c = childs[i][textContent].match(Y.Selection.REG_CHAR);
+                        s = childs[i][textContent].match(Y.Selection.REG_NON);
                         if (c === null && s) {
                             doit = false;
                             
@@ -172,6 +202,7 @@ YUI.add('selection', function(Y) {
             }
             wrapped = Y.Selection._wrapBlock(wrapped);
         }
+
         single = Y.all('p');
         if (single.size() === 1) {
             br = single.item(0).all('br');
@@ -192,24 +223,30 @@ YUI.add('selection', function(Y) {
                 }
             });
         }
-        divs = Y.all('div, p');
-        divs.each(function(d) {
-            var html = d.get('innerHTML');
-            if (html === '') {
-                d.remove();
-            } else {
-                if (d.get('childNodes').size() == 1) {
-                    if (d.ancestor('p')) {
-                        d.replace(d.get('firstChild'));
+        
+        if (!Y.UA.ie) {
+            divs = Y.all('div, p');
+            divs.each(function(d) {
+                var html = d.get('innerHTML');
+                if (html === '') {
+                    d.remove();
+                } else {
+                    if (d.get('childNodes').size() == 1) {
+                        if (d.ancestor('p')) {
+                            d.replace(d.get('firstChild'));
+                        }
                     }
                 }
-            }
-        });
+            });
 
-        spans = Y.all('.Apple-style-span, .apple-style-span');
-        spans.each(function(s) {
-            s.setAttribute('style', '');
-        });
+            spans = Y.all('.Apple-style-span, .apple-style-span');
+            spans.each(function(s) {
+                s.setAttribute('style', '');
+            });
+        }
+
+
+        var endTime = (new Date()).getTime();
     };
 
     /**
@@ -320,7 +357,13 @@ YUI.add('selection', function(Y) {
     * @return {String} The string of text
     */
     Y.Selection.getText = function(node) {
-        return node.get('innerHTML').replace(Y.Selection.STRIP_HTML, '');
+        var t = node.get('innerHTML').replace(Y.Selection.STRIP_HTML, ''),
+            c = t.match(Y.Selection.REG_CHAR),
+            s = t.match(Y.Selection.REG_NON);
+            if (c === null && s) {
+                t = '';
+            }
+        return t;
     };
 
     /**
@@ -743,4 +786,4 @@ YUI.add('selection', function(Y) {
     };
 
 
-}, '@VERSION@' ,{skinnable:false, requires:['node']});
+}, '@VERSION@' ,{requires:['node'], skinnable:false});

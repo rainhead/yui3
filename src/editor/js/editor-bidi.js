@@ -42,7 +42,7 @@
                 inst = host.getInstance(),
                 sel = new inst.Selection(),
                 node, direction;
-
+            
             if (sel.isCollapsed) {
                 node = EditorBidi.blockParent(sel.focusNode);
                 direction = node.getStyle('direction');
@@ -106,7 +106,7 @@
                     break;
                 case 'backspace-up':
                 case 'delete-up':
-                    var ps = inst.all(FIRST_P), br, p, sel, item;
+                    var ps = inst.all(FIRST_P), br, item;
                     if (ps.size() < 2) {
                         item = inst.one(BODY);
                         if (ps.item(0)) {
@@ -140,7 +140,7 @@
         */
         _afterContentChange: function() {
             var host = this.get(HOST), inst = host.getInstance();
-            if (inst) {
+            if (inst && inst.Selection) {
                 inst.Selection.filterBlocks();
             }
         },
@@ -165,13 +165,13 @@
             var host = this.get(HOST);
 
             this.firstEvent = true;
-
+            
             host.after(NODE_CHANGE, Y.bind(this._afterNodeChange, this));
             host.on(NODE_CHANGE, Y.bind(this._onNodeChange, this));
-            host.frame.after('mouseup', Y.bind(this._afterMouseUp, this));
+            host.after('dom:mouseup', Y.bind(this._afterMouseUp, this));
             host.after('ready', Y.bind(this._afterEditorReady, this));
             host.after('contentChange', Y.bind(this._afterContentChange, this));
-            host.after('frame:paste', Y.bind(this._afterPaste, this));
+            host.after('dom:paste', Y.bind(this._afterPaste, this));
         }
     }, {
         /**
