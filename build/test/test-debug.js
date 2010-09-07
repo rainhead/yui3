@@ -123,7 +123,6 @@ YUI.add('test', function(Y) {
         this.delay = (Y.Lang.isNumber(delay) ? delay : 0);        
     };
 
-
         
     Y.namespace("Test");
     
@@ -200,7 +199,6 @@ YUI.add('test', function(Y) {
         }
         
     };
-
     
     /*
      * Runs test suites and test cases, providing events to allowing for the
@@ -211,7 +209,7 @@ YUI.add('test', function(Y) {
      */
     Y.Test.Runner = (function(){
     
-        /**
+        /* (intentionally not documented)
          * A node in the test tree structure. May represent a TestSuite, TestCase, or
          * test function.
          * @param {Variant} testObject A TestSuite, TestCase, or the name of a test function.
@@ -221,42 +219,42 @@ YUI.add('test', function(Y) {
          */
         function TestNode(testObject){
         
-            /**
+            /* (intentionally not documented)
              * The TestSuite, TestCase, or test function represented by this node.
              * @type Variant
              * @property testObject
              */
             this.testObject = testObject;
             
-            /**
+            /* (intentionally not documented)
              * Pointer to this node's first child.
              * @type TestNode
              * @property firstChild
              */        
             this.firstChild = null;
             
-            /**
+            /* (intentionally not documented)
              * Pointer to this node's last child.
              * @type TestNode
              * @property lastChild
              */        
             this.lastChild = null;
             
-            /**
+            /* (intentionally not documented)
              * Pointer to this node's parent.
              * @type TestNode
              * @property parent
              */        
             this.parent = null; 
        
-            /**
+            /* (intentionally not documented)
              * Pointer to this node's next sibling.
              * @type TestNode
              * @property next
              */        
             this.next = null;
             
-            /**
+            /* (intentionally not documented)
              * Test results for this test object.
              * @type object
              * @property results
@@ -282,7 +280,7 @@ YUI.add('test', function(Y) {
         
         TestNode.prototype = {
         
-            /**
+            /* (intentionally not documented)
              * Appends a new test object (TestSuite, TestCase, or test function name) as a child
              * of this node.
              * @param {Variant} testObject A TestSuite, TestCase, or the name of a test function.
@@ -1197,7 +1195,6 @@ YUI.add('test', function(Y) {
         return new TestRunner();
         
     })();
-
   
     /**
      * The Assert object provides functions to test JavaScript values against
@@ -1894,7 +1891,6 @@ YUI.add('test', function(Y) {
     //inherit methods
     Y.extend(Y.Assert.UnexpectedError, Y.Assert.Error);
     
-
    
     /**
      * The ArrayAssert object provides functions to test JavaScript array objects
@@ -2217,7 +2213,6 @@ YUI.add('test', function(Y) {
         
     };
 
-
     /**
      * The ObjectAssert object provides functions to test JavaScript objects
      * for a variety of cases.
@@ -2323,13 +2318,13 @@ YUI.add('test', function(Y) {
         }     
     };
 
-
     
     /**
      * The DateAssert object provides functions to test JavaScript Date objects
      * for a variety of cases.
      *
      * @class DateAssert
+     * @namespace
      * @static
      */
      
@@ -2408,7 +2403,6 @@ YUI.add('test', function(Y) {
         }
         
     };
-
     
     Y.namespace("Test.Format");
     
@@ -2433,10 +2427,16 @@ YUI.add('test', function(Y) {
     }
     
     /**
+     * Contains specific formatting options for test result information.
+     * @namespace Test
+     * @class Format
+     * @static
+     */        
+    
+    /**
      * Returns test results formatted as a JSON string. Requires JSON utility.
      * @param {Object} result The results object created by TestRunner.
      * @return {String} A JSON-formatted string of results.
-     * @namespace Test.Format
      * @method JSON
      * @static
      */
@@ -2448,7 +2448,6 @@ YUI.add('test', function(Y) {
      * Returns test results formatted as an XML string.
      * @param {Object} result The results object created by TestRunner.
      * @return {String} An XML-formatted string of results.
-     * @namespace Test.Format
      * @method XML
      * @static
      */
@@ -2487,7 +2486,6 @@ YUI.add('test', function(Y) {
      * Returns test results formatted in JUnit XML format.
      * @param {Object} result The results object created by TestRunner.
      * @return {String} An XML-formatted string of results.
-     * @namespace Test.Format
      * @method JUnitXML
      * @static
      */
@@ -2560,7 +2558,6 @@ YUI.add('test', function(Y) {
      * For more information, see <a href="http://testanything.org/">Test Anything Protocol</a>.
      * @param {Object} result The results object created by TestRunner.
      * @return {String} A TAP-formatted string of results.
-     * @namespace Test.Format
      * @method TAP
      * @static
      */
@@ -2637,8 +2634,14 @@ YUI.add('test', function(Y) {
         
 
 
-
     Y.namespace("Coverage.Format");
+
+    /**
+     * Contains specific formatting options for coverage information.
+     * @namespace Coverage
+     * @class Format
+     * @static
+     */
     
     /**
      * Returns the coverage report in JSON format. This is the straight
@@ -2646,7 +2649,7 @@ YUI.add('test', function(Y) {
      * @param {Object} coverage The coverage report object.
      * @return {String} A JSON-formatted string of coverage data.
      * @method JSON
-     * @namespace Coverage.Format
+     * @static
      */
     Y.Coverage.Format.JSON = function(coverage){
         return Y.JSON.stringify(coverage);
@@ -2660,7 +2663,7 @@ YUI.add('test', function(Y) {
      * @param {Object} coverage The coverage report object.
      * @return {String} A JSON-formatted string of coverage data.
      * @method XdebugJSON
-     * @namespace Coverage.Format
+     * @static
      */
     Y.Coverage.Format.XdebugJSON = function(coverage){
         var report = {};
@@ -2672,7 +2675,6 @@ YUI.add('test', function(Y) {
 
 
   
-
 
     Y.namespace("Test");
     
@@ -2839,7 +2841,6 @@ YUI.add('test', function(Y) {
         }
     
     };
-
     /**
      * Creates a new mock object.
      * @class Mock
@@ -3066,7 +3067,6 @@ YUI.add('test', function(Y) {
      * @static
      */ 
     Y.Mock.Value.Function   = Y.Mock.Value(Y.Assert.isFunction);
-
 /*Stub for future compatibility*/
 if (typeof YUITest == "undefined" || !YUITest) {
     YUITest = {
@@ -3075,7 +3075,6 @@ if (typeof YUITest == "undefined" || !YUITest) {
         CoverageFormat: Y.Coverage.Format
     };
 }
-
 
 
 }, '@VERSION@' ,{requires:['substitute','event-base','json-stringify']});

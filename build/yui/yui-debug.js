@@ -732,7 +732,7 @@ proto = {
             // server side loader service
             Y.Get.script(Y._rls(args), {
                 onEnd: function(o) {
-                    handleLoader(o.data);
+                    handleLoader(o);
                 }, 
                 data: args
             });
@@ -1341,7 +1341,8 @@ Y.log('This instance is not provisioned to fetch missing modules: ' + missing, '
 
 /**
  * Alternative console log function for use in environments without
- * a supported native console.
+ * a supported native console.  The function is executed in the
+ * YUI instance context.
  * @since 3.1.0
  * @property logFn
  * @type Function
@@ -1350,7 +1351,8 @@ Y.log('This instance is not provisioned to fetch missing modules: ' + missing, '
 /**
  * A callback to execute when Y.error is called.  It receives the
  * error message and an javascript error object if Y.error was
- * executed because a javascript error was caught.
+ * executed because a javascript error was caught.  The function
+ * is executed in the YUI instance context.
  *
  * @since 3.2.0
  * @property errorFn
@@ -1777,9 +1779,7 @@ YArray.each = (Native.forEach) ?
 YArray.hash = function(k, v) {
     var o = {}, l = k.length, vl = v && v.length, i;
     for (i=0; i<l; i=i+1) {
-        if (k[i]) {
-            o[k[i]] = (vl && vl > i) ? v[i] : true;
-        }
+        o[k[i]] = (vl && vl > i) ? v[i] : true;
     }
 
     return o;
@@ -3695,7 +3695,7 @@ INSTANCE.log = function(msg, cat, src, silent) {
             if (c.useBrowserConsole) {
                 m = (src) ? src + ': ' + msg : msg;
                 if (Y.Lang.isFunction(c.logFn)) {
-                    c.logFn(msg, cat, src);
+                    c.logFn.call(Y, msg, cat, src);
                 } else if (typeof console != UNDEFINED && console.log) {
                     f = (cat && console[cat] && (cat in LEVELS)) ? cat : 'log';
                     console[f](m);
@@ -3779,25 +3779,17 @@ YUI.add('yui-later', function(Y) {
     later = function(when, o, fn, data, periodic) {
         when = when || 0; 
 
-        var m = fn, f = m, id, d;
+        var m = fn, f, id;
 
-        if (o) {
-            if (L.isString(fn)) {
-                m = o[fn];
-            }
-
-            if(!Y.Lang.isUndefined(data)) {
-                d = Y.Array(data);
-            }
-
-            f = function() {
-                if (d) {
-                    m.apply(o, d) ;
-                } else {
-                    m.call(o);
-                }
-            };
+        if (o && L.isString(fn)) {
+            m = o[fn];
         }
+
+        f = !L.isUndefined(data) ? function() {
+            m.apply(o, Y.Array(data));
+        } : function() {
+            m.call(o);
+        };
 
         id = (periodic) ? setInterval(f, when) : setTimeout(f, when);
 

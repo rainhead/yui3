@@ -14,7 +14,7 @@ if (!YUI.Env[Y.version]) {
             BUILD           = '/build/',
             ROOT            = VERSION + BUILD,
             CDN_BASE        = Y.Env.base,
-            GALLERY_VERSION = 'gallery-2010.08.25-19-45',
+            GALLERY_VERSION = 'gallery-2010.09.01-19-12',
             // GALLERY_ROOT    = GALLERY_VERSION + BUILD,
             TNT             = '2in3',
             TNT_VERSION     = '3',
@@ -207,6 +207,7 @@ var NOT_FOUND       = {},
     VERSION         = Y.version,
     ROOT_LANG       = "",
     YObject         = Y.Object,
+    oeach           = YObject.each,
     YArray          = Y.Array,
     _queue          = GLOBAL_ENV._loaderQueue,
     META            = GLOBAL_ENV[VERSION],
@@ -215,7 +216,6 @@ var NOT_FOUND       = {},
     ON_PAGE         = GLOBAL_ENV.mods,
     modulekey,
     cache,
-
     _path           = function(dir, file, type, nomin) {
                         var path = dir + '/' + file;
                         if (!nomin) {
@@ -534,25 +534,28 @@ Y.Loader = function(o) {
     self.config = o;
     self._internal = true;
 
+
     cache = GLOBAL_ENV._renderedMods;
 
     if (cache) {
-        self.moduleInfo = Y.merge(cache);
+        oeach(cache, function(v, k) {
+            self.moduleInfo[k] = Y.merge(v);
+        });
+
         cache = GLOBAL_ENV._conditions;
-        self.conditions = Y.merge(cache);
+        
+        oeach(cache, function(v, k) {
+            self.conditions[k] = Y.merge(v);
+        });
 
     } else {
-        // YObject.each(defaults, function(v, k) {
-        //     self.addModule(v, k);
-        // });
-        YObject.each(defaults, self.addModule, self);
+        oeach(defaults, self.addModule, self);
     }
 
     if (!GLOBAL_ENV._renderedMods) {
         GLOBAL_ENV._renderedMods = Y.merge(self.moduleInfo);
         GLOBAL_ENV._conditions = Y.merge(self.conditions);
     }
-
 
     self._inspectPage();
 
@@ -650,7 +653,7 @@ Y.Loader.prototype = {
     },
 
    _inspectPage: function() {
-       YObject.each(ON_PAGE, function(v, k) {
+       oeach(ON_PAGE, function(v, k) {
            if (v.details) {
                var m = this.moduleInfo[k],
                    req = v.details.requires,
@@ -738,7 +741,7 @@ Y.Loader.prototype = {
 
                     } else if (i == 'modules') {
                         // add a hash of module definitions
-                        YObject.each(val, self.addModule, self);
+                        oeach(val, self.addModule, self);
                     } else if (i == 'gallery') {
                         this.groups.gallery.update(val);
                     } else if (i == 'yui2' || i == '2in3') {
@@ -845,14 +848,14 @@ Y.Loader.prototype = {
         self.groups[name] = o;
 
         if (o.patterns) {
-            YObject.each(o.patterns, function(v, k) {
+            oeach(o.patterns, function(v, k) {
                 v.group = name;
                 self.patterns[k] = v;
             });
         }
 
         if (mods) {
-            YObject.each(mods, function(v, k) {
+            oeach(mods, function(v, k) {
                 v.group = name;
                 self.addModule(v, k);
             }, self);
@@ -1161,10 +1164,12 @@ Y.Loader.prototype = {
                     d.push(o[i]);
                     hash[o[i]] = true;
                     m = info[o[i]];
-                    add = this.getRequires(m);
-                    intl = intl || (m.expanded_map && (INTL in m.expanded_map));
-                    for (j=0; j<add.length; j++) {
-                        d.push(add[j]);
+                    if (m) {
+                        add = this.getRequires(m);
+                        intl = intl || (m.expanded_map && (INTL in m.expanded_map));
+                        for (j=0; j<add.length; j++) {
+                            d.push(add[j]);
+                        }
                     }
                 }
             }
@@ -1173,7 +1178,7 @@ Y.Loader.prototype = {
         cond = this.conditions[name];
 
         if (cond) {
-            YObject.each(cond, function(def, condmod) {
+            oeach(cond, function(def, condmod) {
 
                 if (!hash[condmod]) {
                     go = def && ((def.ua && Y.UA[def.ua]) || 
@@ -1393,7 +1398,7 @@ Y.Loader.prototype = {
         // the setup phase is over, all modules have been created
         self.dirty = false;
 
-        YObject.each(r, function(v, name) {
+        oeach(r, function(v, name) {
             if (!done[name]) {
                 done[name] = true;
                 m = self.getModule(name);
@@ -1531,14 +1536,14 @@ Y.Loader.prototype = {
     _onSuccess: function() {
         var skipped = Y.merge(this.skipped), fn;
 
-        YObject.each(skipped, function(k) {
+        oeach(skipped, function(k) {
             delete this.inserted[k];
         }, this);
 
         this.skipped = {};
 
         // Y.mix(this.loaded, this.inserted);
-        YObject.each(this.inserted, function(v, k) {
+        oeach(this.inserted, function(v, k) {
             Y.mix(this.loaded, this.getProvides(k));
         }, this);
 
@@ -2171,7 +2176,9 @@ YUI.Env[Y.version].modules = YUI.Env[Y.version].modules || {
                 ]
             }, 
             "anim-easing": {
-                "requires": []
+                "requires": [
+                    "anim-base"
+                ]
             }, 
             "anim-node-plugin": {
                 "requires": [
@@ -2336,21 +2343,29 @@ YUI.Env[Y.version].modules = YUI.Env[Y.version].modules || {
     }, 
     "cssgrids": {
         "optional": [
-            "cssreset"
-        ], 
-        "path": "cssgrids/grids-min.css", 
-        "requires": [
+            "cssreset", 
             "cssfonts"
         ], 
+        "path": "cssgrids/grids-min.css", 
         "type": "css"
     }, 
-    "cssgrids-context": {
+    "cssgrids-context-deprecated": {
         "optional": [
             "cssreset-context"
         ], 
-        "path": "cssgrids/grids-context-min.css", 
+        "path": "cssgrids-deprecated/grids-context-min.css", 
         "requires": [
             "cssfonts-context"
+        ], 
+        "type": "css"
+    }, 
+    "cssgrids-deprecated": {
+        "optional": [
+            "cssreset"
+        ], 
+        "path": "cssgrids-deprecated/grids-min.css", 
+        "requires": [
+            "cssfonts"
         ], 
         "type": "css"
     }, 
@@ -2719,7 +2734,8 @@ YUI.Env[Y.version].modules = YUI.Env[Y.version].modules || {
                     "frame", 
                     "node", 
                     "exec-command", 
-                    "selection"
+                    "selection", 
+                    "editor-para"
                 ]
             }, 
             "editor-bidi": {
@@ -2728,6 +2744,11 @@ YUI.Env[Y.version].modules = YUI.Env[Y.version].modules || {
                 ]
             }, 
             "editor-lists": {
+                "requires": [
+                    "editor-base"
+                ]
+            }, 
+            "editor-para": {
                 "requires": [
                     "editor-base"
                 ]
@@ -3400,9 +3421,25 @@ YUI.Env[Y.version].modules = YUI.Env[Y.version].modules || {
             "jsonp", 
             "jsonp-url"
         ]
+    }, 
+    "yui": {
+        "submodules": {
+            "features": {}, 
+            "get": {}, 
+            "intl-base": {}, 
+            "rls": {
+                "requires": [
+                    "features"
+                ]
+            }, 
+            "yui-base": {}, 
+            "yui-later": {}, 
+            "yui-log": {}, 
+            "yui-throttle": {}
+        }
     }
 };
-YUI.Env[Y.version].md5 = '503dbdf98b671df8f52177363e74b6a3';
+YUI.Env[Y.version].md5 = 'cb1db98536fb15d179c178aab4be9340';
 
 
 }, '@VERSION@' ,{requires:['loader-base']});

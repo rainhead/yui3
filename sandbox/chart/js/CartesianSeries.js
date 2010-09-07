@@ -479,59 +479,6 @@ Y.extend(CartesianSeries, Y.Renderer, {
 
     /**
      * @private
-     * Concatenates coordinate array with the correct coordinates for closing an area stack.
-     */
-    _getAllStackedCoordinates: function(coords)
-    {
-        var order = this.get("order"),
-            type = this.get("type"),
-            graph = this.get("graph"),
-            direction = this.get("direction"),
-            seriesCollection = graph.seriesTypes[type],
-            prevCoords,
-            allCoords = this.get(coords).concat(),
-            first = allCoords[0];
-        
-        if(order > 0)
-        {
-            prevCoords = seriesCollection[order - 1].get(coords).concat();
-            allCoords = allCoords.concat(prevCoords.concat().reverse());
-            allCoords.push(allCoords[0]);
-        }
-        else
-        {
-            if(direction === "vertical")
-            {
-                if(coords === "xcoords")
-                {
-                    allCoords.push(this._leftOrigin);
-                    allCoords.push(this._leftOrigin);
-                }
-                else
-                {
-                    allCoords.push(allCoords[allCoords.length-1]);
-                    allCoords.push(first);
-                }
-            }
-            else
-            {
-                if(coords === "xcoords")
-                {
-                    allCoords.push(allCoords[allCoords.length-1]);
-                    allCoords.push(first);
-                }
-                else
-                {
-                    allCoords.push(this._bottomOrigin);
-                    allCoords.push(this._bottomOrigin);
-                }
-            }
-        }
-        return allCoords;
-    },
-
-    /**
-     * @private
      * @description Creates a marker based on its style properties.
      */
     getMarker: function(config)
@@ -558,6 +505,7 @@ Y.extend(CartesianSeries, Y.Renderer, {
             config.series = this;
             marker = new Y.Marker(config);
             marker.render(this.get("node"));
+            Y.one(marker.get("boundingBox")).setStyle("zIndex", 2);
         }
         this._markers.push(marker);
         this._markerNodes.push(Y.one(marker.get("node")));

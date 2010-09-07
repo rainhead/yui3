@@ -115,9 +115,10 @@
 <!--button id="showEditor">Show Editor</button-->
 
 <div id="stub">
-<?php include('mail.php'); ?>
-</div>
+Above the HR
+<hr size="1">
 <?php //include('mail.php'); ?>
+</div>
     <!---div><br></div>
     <ul>
         <li style="font-family: courier new">Item #1</li>
@@ -182,25 +183,26 @@ This is some <strong>other</strong> loose test.
 <ul>
 </div-->
 
-<script type="text/javascript" src="../../build/yui/yui-debug.js?bust=<?php echo(mktime()); ?>"></script>
-<!--script type="text/javascript" src="http://yui.yahooapis.com/3.1.0/build/yui/yui-debug.js?bust=<?php echo(mktime()); ?>"></script-->
+<script type="text/javascript" src="../../build/yui/yui-debug.js?bust=<?php echo(time()); ?>"></script>
+<!--script type="text/javascript" src="http://yui.yahooapis.com/3.1.0/build/yui/yui-debug.js?bust=<?php echo(time()); ?>"></script-->
 
 
-<script type="text/javascript" src="js/editor-base.js?bust=<?php echo(mktime()); ?>"></script>
-<script type="text/javascript" src="js/frame.js?bust=<?php echo(mktime()); ?>"></script>
-<script type="text/javascript" src="js/exec-command.js?bust=<?php echo(mktime()); ?>"></script>
-<script type="text/javascript" src="js/selection.js?bust=<?php echo(mktime()); ?>"></script>
-<script type="text/javascript" src="js/lists.js?bust=<?php echo(mktime()); ?>"></script>
-<script type="text/javascript" src="js/editor-tab.js?bust=<?php echo(mktime()); ?>"></script>
-<script type="text/javascript" src="js/createlink-base.js?bust=<?php echo(mktime()); ?>"></script>
-<script type="text/javascript" src="js/editor-bidi.js?bust=<?php echo(mktime()); ?>"></script>
+<script type="text/javascript" src="js/editor-base.js?bust=<?php echo(time()); ?>"></script>
+<script type="text/javascript" src="js/frame.js?bust=<?php echo(time()); ?>"></script>
+<script type="text/javascript" src="js/exec-command.js?bust=<?php echo(time()); ?>"></script>
+<script type="text/javascript" src="js/selection.js?bust=<?php echo(time()); ?>"></script>
+<script type="text/javascript" src="js/lists.js?bust=<?php echo(time()); ?>"></script>
+<script type="text/javascript" src="js/editor-tab.js?bust=<?php echo(time()); ?>"></script>
+<script type="text/javascript" src="js/createlink-base.js?bust=<?php echo(time()); ?>"></script>
+<script type="text/javascript" src="js/editor-bidi.js?bust=<?php echo(time()); ?>"></script>
+<script type="text/javascript" src="js/editor-para.js?bust=<?php echo(time()); ?>"></script>
 
 <script type="text/javascript">
 var yConfig = {
-    debug: false,
-    filter: 'RAW',
-    //debug: true,
-    //filter: 'debug',
+    //debug: false,
+    //filter: 'RAW',
+    debug: true,
+    filter: 'debug',
     allowRollup: false,
     logExclude: {
         'yui': true,
@@ -210,13 +212,12 @@ var yConfig = {
         augment: true,
         get: true,
         loader: true,
-        frame: true,
         Selector: true
     },
     throwFail: true
 };
 
-YUI(yConfig).use('node', 'selector-css3', 'base', 'editor-base', 'frame', 'substitute', 'exec-command', 'editor-lists', 'createlink-base', 'editor-bidi', 'editor-lists', function(Y) {
+YUI(yConfig).use('node', 'selector-css3', 'base', 'editor-base', 'editor-para', 'frame', 'substitute', 'exec-command', 'editor-lists', 'createlink-base', 'editor-bidi', 'editor-lists', function(Y) {
     //console.log(Y, Y.id);
 
     Y.delegate('click', function(e) {
@@ -352,7 +353,7 @@ YUI(yConfig).use('node', 'selector-css3', 'base', 'editor-base', 'frame', 'subst
 
     editor = new Y.EditorBase({
         content: Y.one('#stub').get('innerHTML'),
-        extracss: 'body { color: red; } p { border: 1px solid green; padding: .25em; margin: 1em; }'
+        extracss: 'body { color: red; } p { border: 1px solid green; padding: .25em; margin: 1em; } #yui-cursor { border: 1px solid purple; }'
     });
     editor.after('nodeChange', function(e) {
         //console.log('changedType: ' + e.changedType);
@@ -380,7 +381,7 @@ YUI(yConfig).use('node', 'selector-css3', 'base', 'editor-base', 'frame', 'subst
         
     });
 
-    editor.plug(Y.Plugin.EditorLists);
+    //editor.plug(Y.Plugin.EditorLists);
     //editor.plug(Y.Plugin.EditorBidi);
 
     //Disabled for IE testing..
@@ -433,6 +434,62 @@ YUI(yConfig).use('node', 'selector-css3', 'base', 'editor-base', 'frame', 'subst
     });
     //editor.on('dom:focus', function() {console.log("Focus called");});
     //editor.on('dom:blur', function() {console.log("Blur called");});
+    /*   
+    editor.on('nodeChange', function(e) {
+        if (Y.UA.ie) {
+            
+            var inst = this.getInstance(),
+    	    sel = inst.config.doc.selection.createRange();
+
+            editor._lastBookmark = sel.getBookmark();
+
+            //console.log(e.changedType + ' :: ' + editor._lastBookmark);
+            
+        }
+    });
+    
+    editor.frame.on('dom:focus', function() {
+        var inst = this.getInstance(), sel, cur;
+
+        console.log("Focus called");
+
+        if (editor._lastBookmark) {
+        } else {
+            sel = new inst.Selection();
+            cur = sel.getCursor();
+
+            if (cur && cur.size()) {
+                sel.focusCursor(true, false);
+            }
+        }
+    });
+
+    editor.frame.on('dom:activate', function(e) {
+        var inst = this.getInstance(), sel, cur;
+        console.log('activate called');
+            sel = inst.config.doc.selection.createRange();
+            console.log('focus: ' + editor._lastBookmark);
+            var bk = sel.moveToBookmark(editor._lastBookmark);
+            sel.collapse(true);
+            sel.select();
+            console.log('Move: ' + bk);
+            editor._lastBookmark = null;
+
+
+    });
+    editor.frame.on('dom:focusout', function(e) {
+        console.log('focusout called');
+    });
+    editor.frame.on('dom:blur', function(e) {
+        console.log("Blur called");
+        if (!Y.UA.ie) {
+            var inst = this.getInstance(),
+                sel = new inst.Selection();
+            sel.setCursor();
+        }
+    });
+    */
+
     
     /*
     editor.on('dom:keyup', function(e) {

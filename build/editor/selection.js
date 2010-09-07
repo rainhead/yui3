@@ -87,7 +87,11 @@ YUI.add('selection', function(Y) {
         if (Y.Lang.isString(sel.text)) {
             this.text = sel.text;
         } else {
-            this.text = sel.toString();
+            if (sel.toString) {
+                this.text = sel.toString();
+            } else {
+                this.text = '';
+            }
         }
     };
     
@@ -103,6 +107,8 @@ YUI.add('selection', function(Y) {
 
         var nodes = Y.all(Y.Selection.ALL),
             baseNodes = Y.all('strong,em'),
+            doc = Y.config.doc,
+            hrs = doc.getElementsByTagName('hr'),
             classNames = {}, cssString = '',
             ls;
 
@@ -112,7 +118,8 @@ YUI.add('selection', function(Y) {
             if (raw.style[FONT_FAMILY]) {
                 classNames['.' + n._yuid] = raw.style[FONT_FAMILY];
                 n.addClass(n._yuid);
-                raw.style[FONT_FAMILY] = '';
+                raw.style[FONT_FAMILY] = 'inherit';
+
                 raw.removeAttribute('face');
                 if (raw.getAttribute('style') === '') {
                     raw.removeAttribute('style');
@@ -141,6 +148,18 @@ YUI.add('selection', function(Y) {
             */
         });
         var endTime1 = (new Date()).getTime();
+
+        Y.each(hrs, function(hr) {
+            var el = doc.createElement('div');
+                el.className = 'hr yui-non';
+                el.setAttribute('style', 'border: 1px solid #ccc; line-height: 0; font-size: 0;margin-top: 5px; margin-bottom: 5px;');
+                el.setAttribute('readonly', true);
+                el.setAttribute('contenteditable', false); //Keep it from being Edited
+                if (hr.parentNode) {
+                    hr.parentNode.replaceChild(el, hr);
+                }
+
+        });
 
         Y.each(classNames, function(v, k) {
             cssString += k + ' { font-family: ' + v.replace(/"/gi, '') + '; }';
@@ -233,6 +252,9 @@ YUI.add('selection', function(Y) {
         if (!Y.UA.ie) {
             divs = Y.all('div, p');
             divs.each(function(d) {
+                if (d.hasClass('yui-non')) {
+                    return;
+                }
                 var html = d.get('innerHTML');
                 if (html === '') {
                     d.remove();
@@ -432,6 +454,7 @@ YUI.add('selection', function(Y) {
     * @method cleanCursor
     */
     Y.Selection.cleanCursor = function() {
+        /*
         var cur = Y.config.doc.getElementById(Y.Selection.CUR_WRAPID);
         if (cur) {
             cur.id = '';
@@ -441,12 +464,18 @@ YUI.add('selection', function(Y) {
                 }
             }
         }
-        /*
-        var cur = Y.one('#' + Y.Selection.CUR_WRAPID);
-        if (cur && cur.get('innerHTML') == '&nbsp;') {
-            cur.remove();
-        }
         */
+        
+        var cur = Y.all('#' + Y.Selection.CUR_WRAPID);
+        if (cur.size) {
+            cur.each(function(c) {
+                var html = c.get('innerHTML');
+                if (html == '&nbsp' || html == '<br>') {
+                    c.remove();
+                }
+            });
+        }
+        
     };
 
     Y.Selection.prototype = {
@@ -634,7 +663,15 @@ YUI.add('selection', function(Y) {
                         node = node.get('parentNode');
                     }
                     newNode = Y.Node.create(html);
-                    node.insert(newNode, 'before');
+                    html = node.get('innerHTML').replace(/\n/gi, '');
+                    if (html == '' || html == '<br>') {
+                        node.append(newNode);
+                    } else {
+                        node.insert(newNode, 'before');
+                    }
+                    if (node.get('firstChild').test('br')) {
+                        node.get('firstChild').remove();
+                    }
                 }
             }
             return newNode;
@@ -778,6 +815,7 @@ YUI.add('selection', function(Y) {
         * @return {Node}
         */
         setCursor: function() {
+            this.removeCursor(false);
             return this.insertContent(Y.Selection.CURSOR);
         },
         /**
@@ -786,7 +824,7 @@ YUI.add('selection', function(Y) {
         * @return {Node}
         */
         getCursor: function() {
-            return Y.one('#' + Y.Selection.CURID);
+            return Y.all('#' + Y.Selection.CURID);
         },
         /**
         * Remove the cursor placeholder from the DOM.
@@ -820,7 +858,9 @@ YUI.add('selection', function(Y) {
             }
             var cur = this.removeCursor(true);
             if (cur) {
-                this.selectNode(cur, collapse, end);
+                cur.each(function(c) {
+                    this.selectNode(c, collapse, end);
+                }, this);
             }
         },
         /**
@@ -834,4 +874,4 @@ YUI.add('selection', function(Y) {
     };
 
 
-}, '@VERSION@' ,{requires:['node'], skinnable:false});
+}, '@VERSION@' ,{skinnable:false, requires:['node']});

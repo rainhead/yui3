@@ -716,7 +716,7 @@ proto = {
             // server side loader service
             Y.Get.script(Y._rls(args), {
                 onEnd: function(o) {
-                    handleLoader(o.data);
+                    handleLoader(o);
                 }, 
                 data: args
             });
@@ -1321,7 +1321,8 @@ proto = {
 
 /**
  * Alternative console log function for use in environments without
- * a supported native console.
+ * a supported native console.  The function is executed in the
+ * YUI instance context.
  * @since 3.1.0
  * @property logFn
  * @type Function
@@ -1330,7 +1331,8 @@ proto = {
 /**
  * A callback to execute when Y.error is called.  It receives the
  * error message and an javascript error object if Y.error was
- * executed because a javascript error was caught.
+ * executed because a javascript error was caught.  The function
+ * is executed in the YUI instance context.
  *
  * @since 3.2.0
  * @property errorFn
@@ -1757,9 +1759,7 @@ YArray.each = (Native.forEach) ?
 YArray.hash = function(k, v) {
     var o = {}, l = k.length, vl = v && v.length, i;
     for (i=0; i<l; i=i+1) {
-        if (k[i]) {
-            o[k[i]] = (vl && vl > i) ? v[i] : true;
-        }
+        o[k[i]] = (vl && vl > i) ? v[i] : true;
     }
 
     return o;

@@ -33,7 +33,7 @@
             }).plug(Y.Plugin.ExecCommand);
 
             frame.after('ready', Y.bind(this._afterFrameReady, this));
-            //frame.addTarget(this);
+            frame.addTarget(this);
 
             this.frame = frame;
 
@@ -42,6 +42,8 @@
                 bubbles: true,
                 defaultFn: this._defNodeChangeFn
             });
+            
+            this.plug(Y.Plugin.EditorPara);
         },
         destructor: function() {
             this.frame.destroy();
@@ -67,6 +69,12 @@
             to.setStyles(newStyles);
         },
         /**
+        * Holder for the selection bookmark in IE.
+        * @property _lastBookmark
+        * @private
+        */
+        _lastBookmark: null,
+        /**
         * The default handler for the nodeChange event.
         * @method _defNodeChangeFn
         * @param {Event} e The event
@@ -75,8 +83,12 @@
         _defNodeChangeFn: function(e) {
             var startTime = (new Date()).getTime();
             //Y.log('Default nodeChange function: ' + e.changedType, 'info', 'editor');
-            var inst = this.getInstance();
+            var inst = this.getInstance(), sel;
 
+            if (Y.UA.ie) {
+    	        sel = inst.config.doc.selection.createRange();
+                this._lastBookmark = sel.getBookmark();
+            }
 
             /*
             * @TODO
@@ -143,9 +155,8 @@
                 cmds = e.commands;
             }
             
-            Y.each(changed, function(n) {
-                var el = inst.Node.getDOMNode(n),
-                    tag = el.tagName.toLowerCase(),
+            Y.each(changed, function(el) {
+                var tag = el.tagName.toLowerCase(),
                     cmd = EditorBase.TAG2CMD[tag];
 
                 if (cmd) {
@@ -168,8 +179,9 @@
                     cmds.strikethrough = 1;
                 }
                 
-                if (s.fontFamily) {
-                    var family2 = s.fontFamily.split(',')[0].toLowerCase();
+                var n = inst.one(el);
+                if (n.getStyle('fontFamily')) {
+                    var family2 = n.getStyle('fontFamily').split(',')[0].toLowerCase();
                     if (family2) {
                         family = family2;
                     }
@@ -177,7 +189,8 @@
                         family = family.replace(/'/g, '').replace(/"/g, '');
                     }
                 }
-                fsize = s.fontSize;
+
+                fsize = n.getStyle('fontSize');
 
                 var cls = el.className.split(' ');
 
@@ -304,12 +317,38 @@
             this.frame.on('dom:keypress', Y.bind(this._onFrameKeyPress, this));
             */
             //this.frame.on('dom:keydown', Y.throttle(Y.bind(this._onFrameKeyDown, this), 500));
+
+
             this.frame.on('dom:keydown', Y.bind(this._onFrameKeyDown, this));
-            this.frame.on('dom:keyup', Y.throttle(Y.bind(this._onFrameKeyUp, this), 800));
-            this.frame.on('dom:keypress', Y.throttle(Y.bind(this._onFrameKeyPress, this), 800));
+
+            if (Y.UA.ie) {
+                this.frame.on('dom:activate', Y.bind(this._onFrameActivate, this));
+                this.frame.on('dom:keyup', Y.throttle(Y.bind(this._onFrameKeyUp, this), 800));
+                this.frame.on('dom:keypress', Y.throttle(Y.bind(this._onFrameKeyPress, this), 800));
+            } else {
+                this.frame.on('dom:keyup', Y.bind(this._onFrameKeyUp, this));
+                this.frame.on('dom:keypress', Y.bind(this._onFrameKeyPress, this));
+            }
 
             inst.Selection.filter();
             this.fire('ready');
+        },
+        /**
+        * Moves the cached selection bookmark back so IE can place the cursor in the right place.
+        * @method _onFrameActivate
+        * @private
+        */
+        _onFrameActivate: function() {
+            if (this._lastBookmark) {
+                Y.log('IE Activate handler, resetting cursor position', 'info', 'editor');
+                var inst = this.getInstance(),
+                    sel = inst.config.doc.selection.createRange(),
+                    bk = sel.moveToBookmark(this._lastBookmark);
+
+                sel.collapse(true);
+                sel.select();
+                this._lastBookmark = null;
+            }
         },
         /**
         * Fires nodeChange event

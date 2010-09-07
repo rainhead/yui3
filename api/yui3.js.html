@@ -16,7 +16,7 @@
 <div id="doc3" class="yui-t2">
 	<div id="hd">
         <h1><a href="http://developer.yahoo.com/yui/" title="Yahoo! UI Library">Yahoo! UI Library</a></h1>
-        <h3>loader&nbsp; <span class="subtitle">3.2.0pr1</span></h3>
+        <h3>loader&nbsp; <span class="subtitle">3.2.0</span></h3>
         <a href="./index.html" title="Yahoo! UI Library">Yahoo! UI Library</a> 
             &gt; <a href="./module_loader.html" title="loader">loader</a>
                 
@@ -74,7 +74,9 @@
                 <span class="p">]</span>
             <span class="p">},</span> 
             <span class="s2">&quot;anim-easing&quot;</span><span class="o">:</span> <span class="p">{</span>
-                <span class="s2">&quot;requires&quot;</span><span class="o">:</span> <span class="p">[]</span>
+                <span class="s2">&quot;requires&quot;</span><span class="o">:</span> <span class="p">[</span>
+                    <span class="s2">&quot;anim-base&quot;</span>
+                <span class="p">]</span>
             <span class="p">},</span> 
             <span class="s2">&quot;anim-node-plugin&quot;</span><span class="o">:</span> <span class="p">{</span>
                 <span class="s2">&quot;requires&quot;</span><span class="o">:</span> <span class="p">[</span>
@@ -239,21 +241,29 @@
     <span class="p">},</span> 
     <span class="s2">&quot;cssgrids&quot;</span><span class="o">:</span> <span class="p">{</span>
         <span class="s2">&quot;optional&quot;</span><span class="o">:</span> <span class="p">[</span>
-            <span class="s2">&quot;cssreset&quot;</span>
-        <span class="p">],</span> 
-        <span class="s2">&quot;path&quot;</span><span class="o">:</span> <span class="s2">&quot;cssgrids/grids-min.css&quot;</span><span class="p">,</span> 
-        <span class="s2">&quot;requires&quot;</span><span class="o">:</span> <span class="p">[</span>
+            <span class="s2">&quot;cssreset&quot;</span><span class="p">,</span> 
             <span class="s2">&quot;cssfonts&quot;</span>
         <span class="p">],</span> 
+        <span class="s2">&quot;path&quot;</span><span class="o">:</span> <span class="s2">&quot;cssgrids/grids-min.css&quot;</span><span class="p">,</span> 
         <span class="s2">&quot;type&quot;</span><span class="o">:</span> <span class="s2">&quot;css&quot;</span>
     <span class="p">},</span> 
-    <span class="s2">&quot;cssgrids-context&quot;</span><span class="o">:</span> <span class="p">{</span>
+    <span class="s2">&quot;cssgrids-context-deprecated&quot;</span><span class="o">:</span> <span class="p">{</span>
         <span class="s2">&quot;optional&quot;</span><span class="o">:</span> <span class="p">[</span>
             <span class="s2">&quot;cssreset-context&quot;</span>
         <span class="p">],</span> 
-        <span class="s2">&quot;path&quot;</span><span class="o">:</span> <span class="s2">&quot;cssgrids/grids-context-min.css&quot;</span><span class="p">,</span> 
+        <span class="s2">&quot;path&quot;</span><span class="o">:</span> <span class="s2">&quot;cssgrids-deprecated/grids-context-min.css&quot;</span><span class="p">,</span> 
         <span class="s2">&quot;requires&quot;</span><span class="o">:</span> <span class="p">[</span>
             <span class="s2">&quot;cssfonts-context&quot;</span>
+        <span class="p">],</span> 
+        <span class="s2">&quot;type&quot;</span><span class="o">:</span> <span class="s2">&quot;css&quot;</span>
+    <span class="p">},</span> 
+    <span class="s2">&quot;cssgrids-deprecated&quot;</span><span class="o">:</span> <span class="p">{</span>
+        <span class="s2">&quot;optional&quot;</span><span class="o">:</span> <span class="p">[</span>
+            <span class="s2">&quot;cssreset&quot;</span>
+        <span class="p">],</span> 
+        <span class="s2">&quot;path&quot;</span><span class="o">:</span> <span class="s2">&quot;cssgrids-deprecated/grids-min.css&quot;</span><span class="p">,</span> 
+        <span class="s2">&quot;requires&quot;</span><span class="o">:</span> <span class="p">[</span>
+            <span class="s2">&quot;cssfonts&quot;</span>
         <span class="p">],</span> 
         <span class="s2">&quot;type&quot;</span><span class="o">:</span> <span class="s2">&quot;css&quot;</span>
     <span class="p">},</span> 
@@ -622,7 +632,8 @@
                     <span class="s2">&quot;frame&quot;</span><span class="p">,</span> 
                     <span class="s2">&quot;node&quot;</span><span class="p">,</span> 
                     <span class="s2">&quot;exec-command&quot;</span><span class="p">,</span> 
-                    <span class="s2">&quot;selection&quot;</span>
+                    <span class="s2">&quot;selection&quot;</span><span class="p">,</span> 
+                    <span class="s2">&quot;editor-para&quot;</span>
                 <span class="p">]</span>
             <span class="p">},</span> 
             <span class="s2">&quot;editor-bidi&quot;</span><span class="o">:</span> <span class="p">{</span>
@@ -631,6 +642,11 @@
                 <span class="p">]</span>
             <span class="p">},</span> 
             <span class="s2">&quot;editor-lists&quot;</span><span class="o">:</span> <span class="p">{</span>
+                <span class="s2">&quot;requires&quot;</span><span class="o">:</span> <span class="p">[</span>
+                    <span class="s2">&quot;editor-base&quot;</span>
+                <span class="p">]</span>
+            <span class="p">},</span> 
+            <span class="s2">&quot;editor-para&quot;</span><span class="o">:</span> <span class="p">{</span>
                 <span class="s2">&quot;requires&quot;</span><span class="o">:</span> <span class="p">[</span>
                     <span class="s2">&quot;editor-base&quot;</span>
                 <span class="p">]</span>
@@ -1303,9 +1319,25 @@
             <span class="s2">&quot;jsonp&quot;</span><span class="p">,</span> 
             <span class="s2">&quot;jsonp-url&quot;</span>
         <span class="p">]</span>
+    <span class="p">},</span> 
+    <span class="s2">&quot;yui&quot;</span><span class="o">:</span> <span class="p">{</span>
+        <span class="s2">&quot;submodules&quot;</span><span class="o">:</span> <span class="p">{</span>
+            <span class="s2">&quot;features&quot;</span><span class="o">:</span> <span class="p">{},</span> 
+            <span class="s2">&quot;get&quot;</span><span class="o">:</span> <span class="p">{},</span> 
+            <span class="s2">&quot;intl-base&quot;</span><span class="o">:</span> <span class="p">{},</span> 
+            <span class="s2">&quot;rls&quot;</span><span class="o">:</span> <span class="p">{</span>
+                <span class="s2">&quot;requires&quot;</span><span class="o">:</span> <span class="p">[</span>
+                    <span class="s2">&quot;features&quot;</span>
+                <span class="p">]</span>
+            <span class="p">},</span> 
+            <span class="s2">&quot;yui-base&quot;</span><span class="o">:</span> <span class="p">{},</span> 
+            <span class="s2">&quot;yui-later&quot;</span><span class="o">:</span> <span class="p">{},</span> 
+            <span class="s2">&quot;yui-log&quot;</span><span class="o">:</span> <span class="p">{},</span> 
+            <span class="s2">&quot;yui-throttle&quot;</span><span class="o">:</span> <span class="p">{}</span>
+        <span class="p">}</span>
     <span class="p">}</span>
 <span class="p">};</span>
-<span class="nx">YUI</span><span class="p">.</span><span class="nx">Env</span><span class="p">[</span><span class="nx">Y</span><span class="p">.</span><span class="nx">version</span><span class="p">].</span><span class="nx">md5</span> <span class="o">=</span> <span class="s1">&#39;503dbdf98b671df8f52177363e74b6a3&#39;</span><span class="p">;</span>
+<span class="nx">YUI</span><span class="p">.</span><span class="nx">Env</span><span class="p">[</span><span class="nx">Y</span><span class="p">.</span><span class="nx">version</span><span class="p">].</span><span class="nx">md5</span> <span class="o">=</span> <span class="s1">&#39;cb1db98536fb15d179c178aab4be9340&#39;</span><span class="p">;</span>
 </pre></div>
 
                     </div>
@@ -1373,6 +1405,7 @@
                                 <li class=""><a href="module_swfdetect.html" title="swfdetect">swfdetect</a></li>
                                 <li class=""><a href="module_tabview.html" title="tabview">tabview</a></li>
                                 <li class=""><a href="module_test.html" title="test">test</a></li>
+                                <li class=""><a href="module_transition.html" title="transition">transition</a></li>
                                 <li class=""><a href="module_uploader.html" title="uploader">uploader</a></li>
                                 <li class=""><a href="module_widget.html" title="widget">widget</a></li>
                                 <li class=""><a href="module_widget-anim.html" title="widget-anim">widget-anim</a></li>

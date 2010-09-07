@@ -16,6 +16,7 @@ function BaseAxis (config)
     this._createId();
     this._keys = {};
     this._data = [];
+    this._keyCollection = [];
     BaseAxis.superclass.constructor.apply(this, arguments);
 }
 
@@ -252,7 +253,31 @@ BaseAxis.ATTRS = {
                 }
             }
         }
-	}
+	},
+
+    keyCollection: {
+        getter: function()
+        {
+            return this._keyCollection;
+        },
+        readOnly: true
+    },
+
+    labelFunction: {
+        getter: function()
+        {
+            if(this._labelFunction)
+            {
+                return this._labelFunction;
+            }
+            return this._defaultLabelFunction;
+        },
+
+        setter: function(val)
+        {
+            this._labelFunction = val;
+        }
+    }
 };
 
 Y.extend(BaseAxis, Y.Base,
@@ -356,6 +381,7 @@ Y.extend(BaseAxis, Y.Base,
 		{
 			return;
 		}
+        this._keyCollection.push(value);
 		this._dataClone = this.get("dataProvider").data.concat();
 		var keys = this.get("keys"),
 			eventKeys = {},
@@ -416,26 +442,32 @@ Y.extend(BaseAxis, Y.Base,
 			newData = [],
 			removedKeys = {},
 			keys = this.get("keys"),
-			event = {};
-		removedKeys[value] = keys[value].concat();
-		for(key in keys)
-		{
-			if(keys.hasOwnProperty(key))
-			{
-				if(key == value) 
-				{
-					continue;
-				}
-				oldKey = keys[key];
-				newData = newData.concat(oldKey);
-				newKeys[key] = oldKey;
-			}
-		}
-		keys = newKeys;
-		this._data = newData;
-		this._updateMinAndMax();
-		event.keysRemoved = removedKeys;
-		this.fire("axisUpdate", event);
+			event = {},
+            keyCollection = this.get("keyCollection"),
+            i = Y.Array.indexOf(keyCollection, value);
+        if(keyCollection && keyCollection.length > 0 && i > -1)
+        {
+            keyCollection.splice(i, 1);
+        }
+        removedKeys[value] = keys[value].concat();
+        for(key in keys)
+        {
+            if(keys.hasOwnProperty(key))
+            {
+                if(key == value) 
+                {
+                    continue;
+                }
+                oldKey = keys[key];
+                newData = newData.concat(oldKey);
+                newKeys[key] = oldKey;
+            }
+        }
+        keys = newKeys;
+        this._data = newData;
+        this._updateMinAndMax();
+        event.keysRemoved = removedKeys;
+        this.fire("axisUpdate", event);
 	},
 
 	/**
@@ -582,8 +614,7 @@ Y.extend(BaseAxis, Y.Base,
         {
             units = (len/majorUnit.distance) + 1;
         }
-        
-        return Math.min(units, this._data.length);
+        return units; 
     },
 
     getMajorUnitDistance: function(len, uiLen, majorUnit)
@@ -610,10 +641,12 @@ Y.extend(BaseAxis, Y.Base,
         var min = this.get("minimum"),
             max = this.get("maximum"),
             val = (pos/len * (max - min)) + min;
-        return this.getFormattedLabel(val, format);
+        return this.get("labelFunction")(val, format);
     },
 
-    getFormattedLabel: function(val, format)
+    _labelFunction: this._defaultLabelFunction,
+    
+    _defaultLabelFunction: function(val, format)
     {
         return val;
     }

@@ -4,13 +4,13 @@ function Lines(cfg)
         line: {
             getter: function()
             {
-                return this._defaults || this._getLineDefaults();
+                return this._lineDefaults || this._getLineDefaults();
             },
 
             setter: function(val)
             {
                 var defaults = this._defaults || this._getLineDefaults();
-                this._defaults = Y.merge(defaults, val);
+                this._lineDefaults = Y.merge(defaults, val);
             }
         }
     };
@@ -22,7 +22,7 @@ Lines.prototype = {
     /**
      * @private
      */
-    _defaults: null,
+    _lineDefaults: null,
 
     /**
 	 * @private
@@ -35,9 +35,10 @@ Lines.prototype = {
 		}
         var xcoords = this.get("xcoords").concat(),
 			ycoords = this.get("ycoords").concat(),
-			len = xcoords.length,
-			lastX = xcoords[0],
-			lastY = ycoords[0],
+            direction = this.get("direction"),
+			len = direction === "vertical" ? ycoords.length : xcoords.length,
+			lastX,
+			lastY,
 			lastValidX = lastX,
 			lastValidY = lastY,
 			nextX,
@@ -45,7 +46,7 @@ Lines.prototype = {
 			i,
 			styles = this.get("line"),
 			lineType = styles.lineType,
-            lc = styles.lineColor || this._getDefaultColor(this.get("graphOrder")),
+            lc = styles.color || this._getDefaultColor(this.get("graphOrder")),
 			dashLength = styles.dashLength,
 			gapSpace = styles.gapSpace,
 			connectDiscontinuousPoints = styles.connectDiscontinuousPoints,
@@ -53,6 +54,8 @@ Lines.prototype = {
 			discontinuousDashLength = styles.discontinuousDashLength,
 			discontinuousGapSpace = styles.discontinuousGapSpace,
 			graphic = this.get("graphic");
+        lastX = lastValidX = xcoords[0];
+        lastY = lastValidY = ycoords[0];
         graphic.lineStyle(styles.weight, lc);
         graphic.moveTo(lastX, lastY);
         for(i = 1; i < len; i = ++i)
@@ -101,7 +104,45 @@ Lines.prototype = {
         }
         graphic.end();
 	},
-	
+    
+    /**
+	 * @private
+	 */
+	drawSpline: function()
+	{
+        if(this.get("xcoords").length < 1) 
+		{
+			return;
+		}
+        var xcoords = this.get("xcoords"),
+			ycoords = this.get("ycoords"),
+            curvecoords = this.getCurveControlPoints(xcoords, ycoords),
+			len = curvecoords.length,
+            cx1,
+            cx2,
+            cy1,
+            cy2,
+            x,
+            y,
+            i = 0,
+			styles = this.get("line"),
+			graphic = this.get("graphic"),
+            color = styles.color || this._getDefaultColor(this.get("graphOrder"));
+        graphic.lineStyle(styles.weight, color);
+        graphic.moveTo(xcoords[0], ycoords[0]);
+        for(; i < len; i = ++i)
+		{
+            x = curvecoords[i].endx;
+            y = curvecoords[i].endy;
+            cx1 = curvecoords[i].ctrlx1;
+            cx2 = curvecoords[i].ctrlx2;
+            cy1 = curvecoords[i].ctrly1;
+            cy2 = curvecoords[i].ctrly2;
+            graphic.curveTo(cx1, cy1, cx2, cy2, x, y);
+        }
+        graphic.end();
+	},
+    
     /**
 	 * Draws a dashed line between two points.
 	 * 
