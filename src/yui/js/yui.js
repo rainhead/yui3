@@ -590,11 +590,7 @@ proto = {
 
             notify = function(response) {
                 if (callback) {
-                    try {
-                        callback(Y, response);
-                    } catch (e) {
-                        Y.error('use callback error', e, args);
-                    }
+                  callback(Y, response);
                 }
             },
 
