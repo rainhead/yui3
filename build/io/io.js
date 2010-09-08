@@ -943,12 +943,12 @@ YUI.add('io-xdr', function(Y) {
     */
     _rS = {},
 
-    ie = w && w.XDomainRequest,
-
     // Document reference
     d = Y.config.doc,
     // Window reference
-    w = Y.config.win;
+    w = Y.config.win,
+
+    ie = w && w.XDomainRequest;
 
    /**
     * @description Method that creates the Flash transport swf.
