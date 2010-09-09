@@ -39,7 +39,7 @@
     d = Y.config.doc,
     // Window reference
     w = Y.config.win,
-
+	// IE8 cross-origin request detection
     ie = w && w.XDomainRequest;
 
    /**
