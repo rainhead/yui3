@@ -2250,51 +2250,64 @@ YUI.Env[Y.version].modules = YUI.Env[Y.version].modules || {
     }, 
     "autocomplete": {
         "plugins": {
-            "autocomplete-filters": {
-                "requires": [
-                    "autocomplete-base", 
-                    "collection", 
-                    "unicode-wordbreak"
-                ]
-            }, 
-            "autocomplete-filters-accentfold": {
-                "requires": [
-                    "autocomplete-base", 
-                    "collection", 
-                    "unicode-accentfold", 
-                    "unicode-wordbreak"
-                ]
-            }, 
-            "autocomplete-highlighters": {
-                "requires": [
-                    "autocomplete-base", 
-                    "collection", 
-                    "highlight-base"
-                ]
-            }, 
-            "autocomplete-highlighters-accentfold": {
-                "requires": [
-                    "autocomplete-base", 
-                    "collection", 
-                    "highlight-accentfold"
-                ]
-            }, 
             "autocomplete-plugin": {
                 "requires": [
-                    "autocomplete-base", 
+                    "autocomplete", 
                     "node-pluginhost"
                 ]
             }
         }, 
         "submodules": {
             "autocomplete-base": {
+                "plugins": {
+                    "autocomplete-filters": {
+                        "path": "autocomplete/autocomplete-filters-min.js", 
+                        "requires": [
+                            "array-extras", 
+                            "unicode-wordbreak"
+                        ]
+                    }, 
+                    "autocomplete-filters-accentfold": {
+                        "path": "autocomplete/autocomplete-filters-accentfold-min.js", 
+                        "requires": [
+                            "array-extras", 
+                            "unicode-accentfold", 
+                            "unicode-wordbreak"
+                        ]
+                    }, 
+                    "autocomplete-highlighters": {
+                        "path": "autocomplete/autocomplete-highlighters-min.js", 
+                        "requires": [
+                            "array-extras", 
+                            "highlight-base"
+                        ]
+                    }, 
+                    "autocomplete-highlighters-accentfold": {
+                        "path": "autocomplete/autocomplete-highlighters-accentfold-min.js", 
+                        "requires": [
+                            "array-extras", 
+                            "highlight-accentfold"
+                        ]
+                    }
+                }, 
                 "requires": [
-                    "base-base", 
+                    "array-extras", 
+                    "base-build", 
                     "event-valuechange", 
                     "node-base"
                 ]
             }
         }
+    }, 
+    "autocomplete-list": {
+        "requires": [
+            "autocomplete-base", 
+            "widget", 
+            "widget-position", 
+            "widget-position-align", 
+            "widget-stack"
+        ], 
+        "skinnable": true
     }, 
     "base": {
         "submodules": {
@@ -2960,7 +2973,7 @@ YUI.Env[Y.version].modules = YUI.Env[Y.version].modules || {
             }, 
             "highlight-base": {
                 "requires": [
-                    "collection", 
+                    "array-extras", 
                     "escape", 
                     "unicode-wordbreak"
                 ]
@@ -3428,7 +3441,7 @@ YUI.Env[Y.version].modules = YUI.Env[Y.version].modules || {
         "submodules": {
             "unicode-accentfold": {
                 "requires": [
-                    "collection", 
+                    "array-extras", 
                     "unicode-data-accentfold"
                 ]
             }, 
@@ -3436,7 +3449,7 @@ YUI.Env[Y.version].modules = YUI.Env[Y.version].modules || {
             "unicode-data-wordbreak": {}, 
             "unicode-wordbreak": {
                 "requires": [
-                    "collection", 
+                    "array-extras", 
                     "unicode-data-wordbreak"
                 ]
             }
@@ -3553,7 +3566,7 @@ YUI.Env[Y.version].modules = YUI.Env[Y.version].modules || {
         }
     }
 };
-YUI.Env[Y.version].md5 = 'd1e508fbc6907c32448266f75916c03d';
+YUI.Env[Y.version].md5 = 'b0475d1d9b2bf468dd561145bb8b6d3c';
 
 
 }, '@VERSION@' ,{requires:['loader-base']});

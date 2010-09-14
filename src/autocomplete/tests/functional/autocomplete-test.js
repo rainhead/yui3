@@ -4,8 +4,8 @@ var Assert      = Y.Assert,
     ArrayAssert = Y.ArrayAssert,
 
     AutoComplete = Y.AutoComplete,
-    Filters      = AutoComplete.Filters,
-    Hi           = AutoComplete.Highlighters,
+    Filters      = Y.AutoCompleteFilters,
+    Hi           = Y.AutoCompleteHighlighters,
 
     suite,
     baseSuite,
@@ -24,7 +24,7 @@ baseSuite.add(new Y.Test.Case({
 
     _should: {
         error: {
-            'Initializer should require an inputNode': 'No input node specified.'
+            'Initializer should require an inputNode': 'No inputNode specified.'
         }
     },
 
@@ -501,7 +501,7 @@ Y.Test.Runner.add(suite);
 
 }, '@VERSION@', {
     requires: [
-        'autocomplete-base', 'autocomplete-filters',
+        'autocomplete', 'autocomplete-filters',
         'autocomplete-filters-accentfold', 'autocomplete-highlighters',
         'autocomplete-highlighters-accentfold', 'node', 'test'
     ]
