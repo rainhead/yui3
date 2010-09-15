@@ -121,6 +121,16 @@ ArrayListProto = {
      */
     isEmpty: function () {
         return !this.size();
+    },
+
+    /**
+     * Provides an array-like representation for JSON.stringify.
+     *
+     * @method toJSON
+     * @return { Array } an array representation of the ArrayList
+     */
+    toJSON: function () {
+        return this._items;
     }
 };
 // Default implementation does not distinguish between public and private
