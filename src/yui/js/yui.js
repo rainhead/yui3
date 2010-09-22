@@ -28,21 +28,36 @@ if (typeof YUI != 'undefined') {
  */
     /*global YUI*/
     /*global YUI_config*/
-    var YUI = function() {
+    var instanceOf = function(o, type) {
+            return (o && o.hasOwnProperty && (o instanceof type));
+        },
+    YUI = function() {
         var i = 0,
             Y = this,
             args = arguments,
             l = args.length,
             gconf = (typeof YUI_config !== 'undefined') && YUI_config;
 
-        if (!(Y instanceof YUI)) {
+        if (!(instanceOf(Y, YUI))) {
             Y = new YUI();
         } else {
             // set up the core environment
             Y._init();
+
+            // YUI.GlobalConfig is a master configuration that might span
+            // multiple contexts in a non-browser environment.  It is applied
+            // first to all instances in all contexts.
+            if (YUI.GlobalConfig) {
+                Y.applyConfig(YUI.GlobalConfig);
+            }
+
+            // YUI_Config is a page-level config.  It is applied to all instances
+            // created on the page.  This is applied after YUI.GlobalConfig, and
+            // before the instance level configuration objects.
             if (gconf) {
                 Y.applyConfig(gconf);
             }
+
             // bind the specified additional modules for this instance
             if (!l) {
                 Y._setup();
@@ -50,6 +65,9 @@ if (typeof YUI != 'undefined') {
         }
 
         if (l) {
+            // Each instance can accept one or more configuration objects.  These
+            // are applied after YUI.GlobalConfig and YUI_Config, overriding values
+            // set in those config files if there is a matching property.
             for (; i < l; i++) {
                 Y.applyConfig(args[i]);
             }
@@ -908,7 +926,17 @@ Y.log('Instance is not provisioned to fetch missing mods: ' +
         }
         delete instances[Y.id];
         delete Y.Env;
-    }
+        delete Y.config;
+    },
+
+    /**
+     * instanceof check for objects that works around
+     * memory leak in IE when the item tested is
+     * window/document
+     * @method instanceOf
+     * @since 3.3.0
+     */
+    instanceOf: instanceOf
 };
 
     YUI.prototype = proto;
