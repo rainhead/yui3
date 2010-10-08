@@ -115,11 +115,11 @@
 <!--button id="showEditor">Show Editor</button-->
 
 <div id="stub">
+</div>
+    <!---div><br></div>
 Above the HR
 <hr size="1">
 <?php //include('mail.php'); ?>
-</div>
-    <!---div><br></div>
     <ul>
         <li style="font-family: courier new">Item #1</li>
         <li>Item #1</li>
@@ -212,7 +212,8 @@ var yConfig = {
         augment: true,
         get: true,
         loader: true,
-        Selector: true
+        Selector: true,
+        selection: true
     },
     throwFail: true
 };
@@ -220,7 +221,8 @@ var yConfig = {
 YUI(yConfig).use('node', 'selector-css3', 'base', 'editor-base', 'editor-para', 'frame', 'substitute', 'exec-command', 'editor-lists', 'createlink-base', 'editor-bidi', 'editor-lists', function(Y) {
     //console.log(Y, Y.id);
 
-    Y.delegate('click', function(e) {
+    Y.delegate('mousedown', function(e) {
+        e.halt();
         e.target.toggleClass('selected');
         var cmd = e.target.get('innerHTML').toLowerCase(),
             val = '';
@@ -245,18 +247,26 @@ YUI(yConfig).use('node', 'selector-css3', 'base', 'editor-base', 'editor-para', 
                 val = '#0000FF';
                 break;
         }
-        editor.frame.focus();
-        var ex_return = editor.execCommand(cmd, val);
-        //console.info('Return: ', cmd, ' :: ', ex_return);
+        editor.focus(function() {
+            editor.execCommand(cmd, val);
+        });
     }, '#test1 > div', 'button');
 
-    Y.delegate('change', function(e) {
+    Y.on('change', function(e) {
         var cmd = e.currentTarget.get('id'),
             val = e.currentTarget.get('value');
         
         editor.frame.focus();
         var ex_return = editor.execCommand(cmd, val);
-    }, '#test1 > div', 'select');
+    }, '#fontsize');
+
+    Y.on('change', function(e) {
+        var cmd = e.currentTarget.get('id'),
+            val = e.currentTarget.get('value');
+        
+        editor.frame.focus();
+        var ex_return = editor.execCommand(cmd, val);
+    }, '#fontname');
 
 
     var smilies = [
@@ -281,8 +291,9 @@ YUI(yConfig).use('node', 'selector-css3', 'base', 'editor-base', 'editor-para', 
     });
     s_cont.delegate('click', function(e) {
         var img = e.currentTarget, inst = editor.getInstance();
-        editor.focus();
-        editor.execCommand('insertandfocus', '<span>:)</span>');
+        editor.focus(function() {
+            editor.execCommand('insertandfocus', '<span>:)</span>');
+        });
         /*
         editor.focus(function() {
             editor.execCommand('insertandfocus', '<span>:)</span>');
@@ -353,8 +364,23 @@ YUI(yConfig).use('node', 'selector-css3', 'base', 'editor-base', 'editor-para', 
 
     editor = new Y.EditorBase({
         content: Y.one('#stub').get('innerHTML'),
-        extracss: 'body { color: red; } p { border: 1px solid green; padding: .25em; margin: 1em; } #yui-cursor { border: 1px solid purple; }'
+        /*
+        linkedcss: [
+            'http://yui.yahooapis.com/2.8.1/build/reset/reset.css',
+            'http://yui.yahooapis.com/2.8.1/build/fonts/fonts.css',
+            'http://yui.yahooapis.com/2.8.1/build/grids/grids.css'
+        ],
+        */
+        extracss: 'body { color: red; } p { border: 1px solid green; padding: 8px; margin: 15px; } #yui-cursor { border: 1px solid purple; }'
     });
+    
+    /*
+    setTimeout(function() {
+        console.log('Injecting');
+        editor.set('linkedcss', ['http://blog.davglass.com/files/yui/css/davglass.css']);
+    }, 5000);
+    */
+
     editor.after('nodeChange', function(e) {
         //console.log('changedType: ' + e.changedType);
         //if (e.changedType !== 'execcommand') {
