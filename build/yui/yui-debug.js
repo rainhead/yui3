@@ -776,14 +776,14 @@ Y.log('Modules missing: ' + missing + ', ' + missing.length, 'info', 'yui');
 // Y.log('Using loader to fetch missing deps: ' + missing, 'info', 'yui');
             Y.log('Using Loader', 'info', 'yui');
             Y._loading = true;
-            // loader = getLoader(Y);
+            loader = getLoader(Y);
             loader.onEnd = handleLoader;
             loader.context = Y;
             loader.data = args;
             loader.ignoreRegistered = false;
-            // loader.require((fetchCSS) ? missing : args);
-            // loader.insert(null, (fetchCSS) ? null : 'js');
-            loader.partial(missing, (fetchCSS) ? null : 'js');
+            loader.require(args);
+            loader.insert(null, (fetchCSS) ? null : 'js');
+            // loader.partial(missing, (fetchCSS) ? null : 'js');
 
         } else if (len && Y.config.use_rls) {
 
@@ -1689,7 +1689,7 @@ L.isUndefined = function(o) {
  * @return {string} the trimmed string.
  */
 L.trim = STRING_PROTO.trim ? function(s) {
-    return s.trim();
+    return (s && s.trim) ? s.trim() : s;
 } : function (s) {
     try {
         return s.replace(TRIMREGEX, EMPTYSTRING);
@@ -1713,7 +1713,7 @@ L.trimLeft = STRING_PROTO.trimLeft ? function (s) {
 
 /**
  * Returns a string without any trailing whitespace.
- * @method trimLeft
+ * @method trimRight
  * @static
  * @param s {string} the string to trim.
  * @return {string} the trimmed string.

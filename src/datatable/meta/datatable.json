@@ -10,11 +10,17 @@
             },
             "datatable-sort": {
                 "requires": [
-                    "arraysort",
                     "datatable-base",
-                    "plugin"
+                    "plugin",
+                    "recordset-sort"
                 ]
-            }
+            },
+			"datatable-scroll": {
+				"requires": [
+					"datatable-base",
+					"plugin"
+				]
+			}
         }
     }
 }

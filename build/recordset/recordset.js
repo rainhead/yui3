@@ -26,6 +26,9 @@ var Record = Y.Base.create('record', Y.Base, [], {
 		if (field === undefined) {
         	return this.get("data");
 		}
+		else if (field === 'id') {
+			return this.get('id');
+		}
 		else {
 			return this.get("data")[field];
 		}
@@ -35,8 +38,7 @@ var Record = Y.Base.create('record', Y.Base, [], {
 {
 	ATTRS: {
 	    id: {
-	        valueFn: "_setId",
-	        writeOnce: true
+	        valueFn: "_setId"
 	    },
 	    data : {
 			value: null
@@ -52,12 +54,13 @@ var ArrayList = Y.ArrayList,
     initializer: function() {
 	
 		//set up event listener to fire events when recordset is modified in anyway
-		this.publish('add', {defaultFn: Bind("_defAddFn", this)});
-		this.publish('remove', {defaultFn: Bind("_defRemoveFn", this)});
-		this.publish('empty', {defaultFn: Bind("_defEmptyFn", this)});
-		this.publish('update', {defaultFn: Bind("_defUpdateFn", this)});
+		this.publish('add', {defaultFn: this._defAddFn});
+		this.publish('remove', {defaultFn: this._defRemoveFn});
+		this.publish('empty', {defaultFn: this._defEmptyFn});
+		this.publish('update', {defaultFn: this._defUpdateFn});
 		
 		this._recordsetChanged();
+		this._syncHashTable();
     },
     
     destructor: function() {
@@ -74,16 +77,23 @@ var ArrayList = Y.ArrayList,
      */
 	_defAddFn: function(e) {
 		var len = this._items.length,
-			rec = e.added,
-			index = e.index;
+			recs = e.added,
+			index = e.index,
+			i=0;
 		//index = (Y.Lang.isNumber(index) && (index > -1)) ? index : len;
 		
-		if (index === len) {
-			this._items.push(rec);
+		for (; i < recs.length; i++) {
+			//if records are to be added one at a time, push them in one at a time
+			if (index === len) {
+				this._items.push(recs[i]);
+			}
+			else {
+				this._items.splice(index,0,recs[i]);
+				index++;
+			}
 		}
-		else {
-			this._items.splice(index,0,rec);
-		}
+		
+		
 	},
 	
 	_defRemoveFn: function(e) {
@@ -94,10 +104,13 @@ var ArrayList = Y.ArrayList,
 			this._items.splice(e.index,e.range);
 		}
 		
+		//this._defRemoveHash(e);
+		
 	},
 	
 	_defEmptyFn: function(e) {
 		this._items = [];
+		//this._defEmptyHash();
 	},
 	
 	_defUpdateFn: function(e) {
@@ -105,7 +118,56 @@ var ArrayList = Y.ArrayList,
 		for (var i=0; i<e.updated.length; i++) {
 			this._items[e.index + i] = this._changeToRecord(e.updated[i]);
 		}
+		//this._defUpdateHash(e);
 	},
+	
+	
+	//---------------------------------------------
+    // Hash Table Methods
+    //---------------------------------------------
+	
+	
+	
+	_defAddHash: function(e) {
+		var obj = this.get('table'), key = this.get('key'), i=0;
+		for (; i<e.added.length; i++) {
+			obj[e.added[i].getValue(key)] = e.added[i];			
+		}
+		this.set('table', obj);
+	},
+	
+	_defRemoveHash: function(e) {
+		var obj = this.get('table'), key = this.get('key'), i=0;
+		for (; i<e.removed.length; i++) {
+			delete obj[e.removed[i].getValue(key)];
+		}
+		this.set('table', obj);
+	},
+	
+	_defUpdateHash: function(e) {
+		var obj = this.get('table'), key = this.get('key'), i=0;
+		
+		//deletes the object key that held on to an overwritten record and
+		//creates an object key to hold on to the updated record
+		for (; i < e.updated.length; i++) {
+			delete obj[e.overwritten[i].get(key)];
+			obj[e.updated[i].getValue(key)] = e.updated[i]; 
+		}
+		this.set('table', obj);
+	},
+	
+	_defEmptyHash: function() {
+		this.set('table', {});
+	},
+	
+	_setHashTable: function() {
+		var obj = {}, key=this.get('key'), i=0, len = this._items.length;
+		for (; i<len; i++) {
+			obj[this._items[i].getValue(key)] = this._items[i];
+		}
+		return obj;
+	},
+	
 	
 	/**
      * Helper method - it takes an object bag and converts it to a Y.Record
@@ -145,34 +207,69 @@ var ArrayList = Y.ArrayList,
 		});
 	},
 
-
+	_syncHashTable: function() {
+		
+		this.after('add', function(e) {
+			this._defAddHash(e);
+		});
+		this.after('remove', function(e) {
+			this._defRemoveHash(e);
+		});
+		this.after('update', function(e) {
+			this._defUpdateHash(e);
+		});
+		this.after('update', function(e) {
+			this._defEmptyHash();
+		});
+		
+	},
 	
 	//---------------------------------------------
     // Public Methods
     //---------------------------------------------
 	
 	/**
-     * Returns the record at a particular index
+     * Returns the record with particular ID
      *
      * @method getRecord
+     * @param i {id} The ID of the record
+     * @return {Y.Record} An Y.Record instance
+     * @public
+     */
+	getRecord: function(i) {
+		
+		if (Y.Lang.isString(i)) {
+			return this.get('table')[i];
+		}
+		else if (Y.Lang.isNumber(i)) {
+			return this._items[i];
+		}
+		return null;
+	},
+	
+	
+	/**
+     * Returns the record at a particular index
+     *
+     * @method getRecordByIndex
      * @param i {Number} Index at which the required record resides
      * @return {Y.Record} An Y.Record instance
      * @public
      */
-    getRecord: function(i) {
+    getRecordByIndex: function(i) {
         return this._items[i];
     },
 	
 	/**
      * Returns a range of records beginning at particular index
      *
-     * @method getRecord
+     * @method getRecordsByIndex
      * @param index {Number} Index at which the required record resides
 	 * @param range {Number} (Optional) Number of records to retrieve. The default is 1
      * @return {Array} An array of Y.Record instances
      * @public
      */
-	getRecords: function(index, range) {
+	getRecordsByIndex: function(index, range) {
 		var i=0, returnedRecords = [];
 		//Range cannot take on negative values
 		range = (Y.Lang.isNumber(range) && (range > 0)) ? range : 1;
@@ -216,22 +313,23 @@ var ArrayList = Y.ArrayList,
      */
 	add: function(oData, index) {
 		
-		var newRecords=[], idx, i;		
+		var newRecords=[], idx, i=0;		
 		idx = (Y.Lang.isNumber(index) && (index > -1)) ? index : this._items.length;
+		
+
+		
 		//Passing in array of object literals for oData
 		if (Y.Lang.isArray(oData)) {
-			newRecords = [];
-
-			for(i=0; i < oData.length; i++) {
+			for(; i < oData.length; i++) {
 				newRecords[i] = this._changeToRecord(oData[i]);
-				this.fire('add', {added:newRecords[i], index:idx+i});
 			}
 
 		}
-		//If it is an object literal of data or a Y.Record
 		else if (Y.Lang.isObject(oData)) {
-			this.fire('add', {added:this._changeToRecord(oData), index:idx});
+			newRecords[0] = this._changeToRecord(oData);
 		}
+		
+		this.fire('add', {added:newRecords, index:idx});
 		return this;
 	},
 	
@@ -274,16 +372,22 @@ var ArrayList = Y.ArrayList,
 	
 	
 	update: function(data, index) {
-		var rec, arr;
+		var rec, arr, i=0;
 		
 		//Whatever is passed in, we are changing it to an array so that it can be easily iterated in the _defUpdateFn method
 		arr = (!(Y.Lang.isArray(data))) ? [data] : data;
 		rec = this._items.slice(index, index+arr.length);
+		
+		for (; i<arr.length; i++) {
+			arr[i] = this._changeToRecord(arr[i]);
+		}
+		
 		this.fire('update', {updated:arr, overwritten:rec, index:index});
 		
 		return this;		
 	}
 	
+
 },
 {
     ATTRS: {
@@ -307,13 +411,20 @@ var ArrayList = Y.ArrayList,
 					}
 				}
 				Y.Array.each(allData, initRecord);
-                // ...unless we don't care about live object references
                 this._items = Y.Array(records);
             },
 			//initialization of the attribute must be done before the first call is made.
 			//see http://developer.yahoo.com/yui/3/api/Attribute.html#method_addAttr for details on this
 			lazyAdd: false
-        }
+        },
+	
+	table: {
+		valueFn: '_setHashTable'
+		},
+		
+	key: {
+		value:'id'
+	}
 		
     }
 });
@@ -481,7 +592,9 @@ Y.extend(RecordsetFilter, Y.Plugin.Base, {
  		}
 
 		oRecs = YArray.filter(recs, func);
-
+		
+		
+		//TODO: PARENT CHILD RELATIONSHIP
 		return new Y.Recordset({records:oRecs});
 		//return new host.constructor({records:arr});
 	},
@@ -503,6 +616,7 @@ Y.namespace("Plugin").RecordsetFilter = RecordsetFilter;
 }, '@VERSION@' ,{requires:['recordset-base','plugin','array-extras']});
 YUI.add('recordset-indexer', function(Y) {
 
+
 function RecordsetIndexer(config) {
     RecordsetIndexer.superclass.constructor.apply(this, arguments);
 }
@@ -513,14 +627,17 @@ Y.mix(RecordsetIndexer, {
     NAME: "recordsetIndexer",
 
     ATTRS: {
-		hash: {
-			valueFn: "_setDefaultHash",
-			lazyAdd: false
-		},
-		
-		defaultKey: {
-			value: "id"
-		}
+		hashTables: {
+				value: {
+					
+				}
+			},
+			
+			keys: {
+				value: {
+					
+				}
+			}
     }
 });
 
@@ -528,42 +645,157 @@ Y.mix(RecordsetIndexer, {
 Y.extend(RecordsetIndexer, Y.Plugin.Base, {
     initializer: function(config) {
        var host = this.get('host');
-
-		//setup listeners on recordset events
-		this.onHostEvent('add', Y.bind("_defAddHash", this), host);
-		this.onHostEvent('remove', Y.bind('_defRemoveHash', this), host);
-		this.onHostEvent('update', Y.bind('_defUpdateHash', this), host);
+       
+       	//setup listeners on recordset events
+       	this.onHostEvent('add', Y.bind("_defAddHash", this), host);
+       	this.onHostEvent('remove', Y.bind('_defRemoveHash', this), host);
+       	this.onHostEvent('update', Y.bind('_defUpdateHash', this), host);	
+       	//this.publish('hashKeyUpdate', {defaultFn:Y.bind('_defUpdateHashTable', this)});
+       		
+       	//create initial hash
+       	//this.set('key', config.key || 'id');
     },
 
     destructor: function(config) {
     },
 
-	_setDefaultHash: function() {
-		var host = this.get('host'), obj = {}, key = this.get('defaultKey');
-		host.each(function() {
-			obj[this.get(key)] = this;
-		});
+	_setHashTable: function(key) {
+		var host = this.get('host'), obj = {}, i=0, len = host.getLength();
+		
+		for (; i<len; i++) {
+			obj[host._items[i].getValue(key)] = host._items[i];
+		}
 		return obj;
+	},
+
+	createTable: function(key) {
+		var tbls = this.get('hashTables');
+		tbls[key] = this._setHashTable(key);
+		this.set('hashTables', tbls);
+		
+		return tbls[key];
+	},
+	
+	getTable: function(key) {
+		return this.get('hashTables')[key];
 	},
 	
 	_defAddHash: function(e) {
-		console.log('e');
-		console.log(e);
-		var obj = this.get('hash'), key = this.get('defaultKey');
-		obj[e.added.get(key)] = e.added;
+		var tbl = this.get('hashTables');
+		
+		
+		//Go through every hashtable that is stored.
+		//in each hashtable, look to see if the key is represented in the object being added.
+		Y.each(tbl, function(v,key) {
+			Y.each(e.added, function(o) {
+				//if the object being added has a key which is being stored by hashtable v, add it into the table.
+				if (o.getValue(key)) {
+					v[o.getValue(key)] = o;
+				}
+			});
+		});
+		
 	},
 	
 	_defRemoveHash: function(e) {
+		var tbl = this.get('hashTables'), reckey;
 		
-	},
-	
-	_defUpdateHash: function(e) {
-		
+		//Go through every hashtable that is stored.
+		//in each hashtable, look to see if the key is represented in the object being deleted.
+		Y.each(tbl, function(v,key){
+			Y.each(e.removed, function(o) {
+				reckey = o.getValue(key);
+				
+				//if the hashtable has a key storing a record, and the key and the record both match the record being deleted, delete that row from the hashtable
+				if (v[reckey] == o) {
+					delete v[reckey];
+				}
+			});
+		}); 
 	}
+	
+	// _defUpdateHash: function(e) {
+	// 	var tbl = this.get('hashTables'), reckey, updated;
+	// 	
+	// 	Y.each(tbl, function(v, key) {
+	// 		Y.each(e.updated, function(o, i) {
+	// 			
+	// 			//delete record from hashtable if it has been overwritten
+	// 			reckey = o.getValue(key);
+	// 			
+	// 			if (e.overwritten[i]) {
+	// 				overwritten = e.overwritten[i];
+	// 			}
+	// 			
+	// 			if (reckey) {
+	// 				v[reckey] = o;
+	// 			}
+	// 			
+	// 			//the undefined case is if more records are updated than currently exist in the recordset. 
+	// 			if ((Y.Lang.isValue(overwritten)) && (v[overwritten.getValue(key)] == overwritten)) {
+	// 				delete v[overwritten.getValue(key)];
+	// 			}
+	// 			
+	// 							// 
+	// 							// 
+	// 							// if (v[reckey] == o) {
+	// 							// 	delete v[reckey];
+	// 							// }
+	// 							// 
+	// 							// //add the new updated record if it has a key that corresponds to a hash table
+	// 							// if (updated.getValue(key)) {
+	// 							// 	v[updated.getValue(key)] = updated;
+	// 							// }
+	// 							// 
+	// 		});
+	// 	});
+	// }
+	
+
+	// _setHashKey: function(k) {
+	// 	this.fire('hashKeyUpdate', {key:k});
+	// 	return k;
+	// },
+	// 
+	// _defUpdateHashTable: function(e) {
+	// 	var host = this.get('host'), obj = {}, key=e.key, i=0, len=host.getLength();
+	// 	
+	// 	for (; i<len; i++) {
+	// 		obj[host._items[i].getValue(key)] = host._items[i];
+	// 	}
+	// 	this.set('table', obj);
+	// },
+	// 
+	// _defAddHash: function(e) {
+	// 	var obj = this.get('table'), key = this.get('key'), i=0;
+	// 	for (; i<e.added.length; i++) {
+	// 		obj[e.added[i].getValue(key)] = e.added[i];			
+	// 	}
+	// 	this.set('table', obj);
+	// },
+	// 
+	// _defRemoveHash: function(e) {
+	// 	var obj = this.get('table'), key = this.get('key'), i=0;
+	// 	for (; i<e.removed.length; i++) {
+	// 		delete obj[e.removed[i].getValue(key)];
+	// 	}
+	// 	this.set('table', obj);
+	// },
+	// 
+	// _defUpdateHash: function(e) {
+	// 	var obj = this.get('table'), key = this.get('key'), i=0;
+	// 	
+	// 	//deletes the object key that held on to an overwritten record and
+	// 	//creates an object key to hold on to the updated record
+	// 	for (; i < e.updated.length; i++) {
+	// 		delete obj[e.overwritten[i].get(key)];
+	// 		obj[e.updated[i].getValue(key)] = e.updated[i]; 
+	// 	}
+	// 	this.set('table', obj);
+	// }
 	
 	
 });
-
 Y.namespace("Plugin").RecordsetIndexer = RecordsetIndexer;
 
 

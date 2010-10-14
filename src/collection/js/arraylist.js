@@ -113,7 +113,7 @@ ArrayListProto = {
         return this._items.length;
     },
 
-    /** 
+    /**
      * Is this instance managing any items?
      *
      * @method isEmpty
@@ -164,7 +164,7 @@ Y.mix( ArrayList, {
      * } );
      * // becomes
      * list.methodName( 1, 2, 3 );</code></pre>
-     * 
+     *
      * <p>Additionally, the pass through methods use the item retrieved by the
      * <code>_item</code> method in case there is any special behavior that is
      * appropriate for API mirroring.</p>

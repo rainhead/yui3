@@ -147,7 +147,7 @@
             if (e.pageX > 0 || e.pageY > 0) {
                 if (e.type.substring(0, 3) !== 'key') {
                     node = this._instance.one('win');
-                    xy = this._iframe.getXY()
+                    xy = this._iframe.getXY();
                     e.frameX = xy[0] + e.pageX - node.get('scrollLeft');
                     e.frameY = xy[1] + e.pageY - node.get('scrollTop');
                 }
@@ -191,7 +191,7 @@
             
             if (win.clipboardData) {
                 data = win.clipboardData.getData('Text');
-                if (data == '') { // Could be empty, or failed
+                if (data === '') { // Could be empty, or failed
                     // Verify failure
                     if (!win.clipboardData.setData('Text', data)) {
                         data = null;
@@ -284,6 +284,10 @@
                 //TODO Circle around and deal with CSS loading...
                 args.push(Y.bind(function() {
                     Y.log('Callback from final internal use call', 'info', 'frame');
+                    if (inst.Selection) {
+                        inst.Selection.DEFAULT_BLOCK_TAG = this.get('defaultblock');
+                    }
+
                     this.fire('ready');
                 }, this));
                 Y.log('Calling use on internal instance: ' + args, 'info', 'frame');
@@ -343,6 +347,11 @@
             }
             return html;
         },
+        /**
+        * @private
+        * @method _setLinkedCSS
+        * @description Set's the linked CSS on the instance..
+        */
         _getLinkedCSS: function(urls) {
             if (!Y.Lang.isArray(urls)) {
                 urls = [urls];
@@ -350,13 +359,20 @@
             var str = '';
             if (!this._ready) {
                 Y.each(urls, function(v) {
-                    str += '<link rel="stylesheet" href="' + v + '" type="text/css">';
+                    if (v !== '') {
+                        str += '<link rel="stylesheet" href="' + v + '" type="text/css">';
+                    }
                 });
             } else {
                 str = urls;
             }
             return str;
         },
+        /**
+        * @private
+        * @method _setLinkedCSS
+        * @description Set's the linked CSS on the instance..
+        */
         _setLinkedCSS: function(css) {
             if (this._ready) {
                 var inst = this.getInstance();
@@ -388,7 +404,6 @@
         */
         _instanceLoaded: function(inst) {
             this._instance = inst;
-
             this._onContentReady();
             
             var doc = this._instance.config.doc;
@@ -633,7 +648,7 @@
         * @description The default css used when creating the document.
         * @type String
         */
-        DEFAULT_CSS: 'html { height: 95%; } body { padding: 7px; background-color: #fff; font: 13px/1.22 arial,helvetica,clean,sans-serif;*font-size:small;*font:x-small; } a, a:visited, a:hover { color: blue !important; text-decoration: underline !important; cursor: text !important; } img { cursor: pointer !important; border: none; } .yui-cursor { *line-height: 0; *height: 0; *width: 0; *font-size: 0; *overflow: hidden; }',
+        DEFAULT_CSS: 'html { height: 95%; } body { padding: 7px; background-color: #fff; font: 13px/1.22 arial,helvetica,clean,sans-serif;*font-size:small;*font:x-small; } a, a:visited, a:hover { color: blue !important; text-decoration: underline !important; cursor: text !important; } img { cursor: pointer !important; border: none; }',
         /**
         * @static
         * @property HTML
@@ -641,7 +656,6 @@
         * @type String
         */
         HTML: '<iframe border="0" frameBorder="0" marginWidth="0" marginHeight="0" leftMargin="0" topMargin="0" allowTransparency="true" width="100%" height="99%"></iframe>',
-        //HTML: '<iframe border="0" frameBorder="0" width="100%" height="99%"></iframe>',
         /**
         * @static
         * @property PAGE_HTML
@@ -796,6 +810,14 @@
             */
             host: {
                 value: false
+            },
+            /**
+            * @attribute defaultblock
+            * @description The default tag to use for block level items, defaults to: p
+            * @type String
+            */            
+            defaultblock: {
+                value: 'p'
             }
         }
     });

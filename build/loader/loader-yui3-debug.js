@@ -390,11 +390,17 @@ YUI.Env[Y.version].modules = YUI.Env[Y.version].modules || {
                 ], 
                 "skinnable": true
             }, 
-            "datatable-sort": {
+            "datatable-scroll": {
                 "requires": [
-                    "arraysort", 
                     "datatable-base", 
                     "plugin"
+                ]
+            }, 
+            "datatable-sort": {
+                "requires": [
+                    "datatable-base", 
+                    "plugin", 
+                    "recordset-sort"
                 ]
             }
         }
@@ -1444,7 +1450,7 @@ YUI.Env[Y.version].modules = YUI.Env[Y.version].modules || {
         }
     }
 };
-YUI.Env[Y.version].md5 = '3f7a3b8632850fc4ebd6150bbec3ed3b';
+YUI.Env[Y.version].md5 = 'af22a015d64d4228aaddc08bfb2d3a09';
 
 
 }, '@VERSION@' ,{requires:['loader-base']});

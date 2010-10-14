@@ -30,8 +30,10 @@
                 dir: this.get('dir'),
                 extracss: this.get('extracss'),
                 linkedcss: this.get('linkedcss'),
+                defaultblock: this.get('defaultblock'),
                 host: this
             }).plug(Y.Plugin.ExecCommand);
+
 
             frame.after('ready', Y.bind(this._afterFrameReady, this));
             frame.addTarget(this);
@@ -84,6 +86,7 @@
         * @private
         */
         _lastBookmark: null,
+
         /**
         * The default handler for the nodeChange event.
         * @method _defNodeChangeFn
@@ -93,11 +96,14 @@
         _defNodeChangeFn: function(e) {
             var startTime = (new Date()).getTime();
             //Y.log('Default nodeChange function: ' + e.changedType, 'info', 'editor');
-            var inst = this.getInstance(), sel;
+            var inst = this.getInstance(), sel, cur,
+                btag = inst.Selection.DEFAULT_BLOCK_TAG;
 
             if (Y.UA.ie) {
     	        sel = inst.config.doc.selection.createRange();
-                this._lastBookmark = sel.getBookmark();
+                if (sel.getBookmark) {
+                    this._lastBookmark = sel.getBookmark();
+                }
             }
 
             /*
@@ -109,25 +115,17 @@
             
             switch (e.changedType) {
                 case 'keydown':
-                    inst.Selection.cleanCursor();
-                    break;
-                case 'enter':
-                    if (Y.UA.webkit) {
-                        //Webkit doesn't support shift+enter as a BR, this fixes that.
-                        if (e.changedEvent.shiftKey) {
-                            this.execCommand('insertbr');
-                            e.changedEvent.preventDefault();
-                        }
-                    }
+                    inst.later(100, inst, inst.Selection.cleanCursor);
+                    //inst.Selection.cleanCursor();
                     break;
                 case 'tab':
                     if (!e.changedNode.test('li, li *') && !e.changedEvent.shiftKey) {
                         e.changedEvent.preventDefault();
 
                         Y.log('Overriding TAB key to insert HTML: HALTING', 'info', 'editor');
-                        var sel = new inst.Selection();
+                        sel = new inst.Selection();
                         sel.setCursor();
-                        var cur = sel.getCursor();
+                        cur = sel.getCursor();
                         cur.insert(EditorBase.TABKEY, 'before');
                         sel.focusCursor();
                     }
@@ -145,14 +143,14 @@
                             b.remove();
                         }
                     }
-                    if (!para.test('p')) {
-                        var para2 = para.ancestor('p');
+                    if (!para.test(btag)) {
+                        var para2 = para.ancestor(btag);
                         if (para2) {
                             para = para2;
                             para2 = null;
                         }
                     }
-                    if (para.test('p')) {
+                    if (para.test(btag)) {
                         var prev = para.previous(), lc, lc2, found = false;
                         if (prev) {
                             lc = prev.one(':last-child');
@@ -173,12 +171,11 @@
                             }
                         }
                     }
-                    //inst.Selection.filterBlocks();
                     break;
             }
             if (Y.UA.gecko) {
-                if (!e.changedNode.test('p')) {
-                    var p = e.changedNode.ancestor('p');
+                if (e.changedNode && !e.changedNode.test(btag)) {
+                    var p = e.changedNode.ancestor(btag);
                     if (p) {
                         this._lastPara = p;
                     }
@@ -228,7 +225,8 @@
                     }
                 }
 
-                fsize = n.getStyle('fontSize');
+                fsize = EditorBase.NORMALIZE_FONTSIZE(n);
+
 
                 var cls = el.className.split(' ');
 
@@ -351,14 +349,6 @@
             
             this.frame.on('dom:mouseup', Y.bind(this._onFrameMouseUp, this));
             this.frame.on('dom:mousedown', Y.bind(this._onFrameMouseDown, this));
-            /*
-            this.frame.on('dom:keyup', Y.bind(this._onFrameKeyUp, this));
-            this.frame.on('dom:keydown', Y.bind(this._onFrameKeyDown, this));
-            this.frame.on('dom:keypress', Y.bind(this._onFrameKeyPress, this));
-            */
-            //this.frame.on('dom:keydown', Y.throttle(Y.bind(this._onFrameKeyDown, this), 500));
-
-
             this.frame.on('dom:keydown', Y.bind(this._onFrameKeyDown, this));
 
             if (Y.UA.ie) {
@@ -412,7 +402,17 @@
         * @private
         */
         _currentSelection: null,
+        /**
+        * Holds the timer for selection clearing
+        * @property _currentSelectionTimer
+        * @private
+        */
         _currentSelectionTimer: null,
+        /**
+        * Flag to determine if we can clear the selection or not.
+        * @property _currentSelectionClear
+        * @private
+        */
         _currentSelectionClear: null,
         /**
         * Fires nodeChange event
@@ -420,6 +420,7 @@
         * @private
         */
         _onFrameKeyDown: function(e) {
+            var inst, sel;
             if (!this._currentSelection) {
                 if (this._currentSelectionTimer) {
                     this._currentSelectionTimer.cancel();
@@ -427,17 +428,19 @@
                 this._currentSelectionTimer = Y.later(850, this, function() {
                     this._currentSelectionClear = true;
                 });
-                var inst = this.frame.getInstance(),
-                    sel = new inst.Selection(e);
+                
+                inst = this.frame.getInstance();
+                sel = new inst.Selection(e);
 
                 this._currentSelection = sel;
             } else {
-                var sel = this._currentSelection;
+                sel = this._currentSelection;
             }
-                var inst = this.frame.getInstance(),
-                    sel = new inst.Selection();
 
-                this._currentSelection = sel;
+            inst = this.frame.getInstance();
+            sel = new inst.Selection();
+
+            this._currentSelection = sel;
 
             if (sel && sel.anchorNode) {
                 this.fire('nodeChange', { changedNode: sel.anchorNode, changedType: 'keydown', changedEvent: e.frameEvent });
@@ -581,6 +584,44 @@
             return html;
         }
     }, {
+        /**
+        * @static
+        * @method NORMALIZE_FONTSIZE
+        * @description Pulls the fontSize from a node, then checks for string values (x-large, x-small)
+        * and converts them to pixel sizes. If the parsed size is different from the original, it calls
+        * node.setStyle to update the node with a pixel size for normalization.
+        */
+        NORMALIZE_FONTSIZE: function(n) {
+            var size = n.getStyle('fontSize'), oSize = size;
+            
+            switch (size) {
+                case '-webkit-xxx-large':
+                    size = '48px';
+                    break;
+                case 'xx-large':
+                    size = '32px';
+                    break;
+                case 'x-large':
+                    size = '24px';
+                    break;
+                case 'large':
+                    size = '18px';
+                    break;
+                case 'medium':
+                    size = '16px';
+                    break;
+                case 'small':
+                    size = '13px';
+                    break;
+                case 'x-small':
+                    size = '10px';
+                    break;
+            }
+            if (oSize !== size) {
+                n.setStyle('fontSize', size);
+            }
+            return size;
+        },
         /**
         * @static
         * @property TABKEY
@@ -734,6 +775,14 @@
                     }
                     return css;
                 }
+            },
+            /**
+            * @attribute defaultblock
+            * @description The default tag to use for block level items, defaults to: p
+            * @type String
+            */            
+            defaultblock: {
+                value: 'p'
             }
         }
     });

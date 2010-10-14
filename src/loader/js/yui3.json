@@ -381,11 +381,17 @@
                 ], 
                 "skinnable": true
             }, 
-            "datatable-sort": {
+            "datatable-scroll": {
                 "requires": [
-                    "arraysort", 
                     "datatable-base", 
                     "plugin"
+                ]
+            }, 
+            "datatable-sort": {
+                "requires": [
+                    "datatable-base", 
+                    "plugin", 
+                    "recordset-sort"
                 ]
             }
         }
