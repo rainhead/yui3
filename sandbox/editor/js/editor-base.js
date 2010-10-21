@@ -15,7 +15,7 @@ YUI.add('editor-base', function(Y) {
     
     var EditorBase = function() {
         EditorBase.superclass.constructor.apply(this, arguments);
-    };
+    }, LAST_CHILD = ':last-child', BODY = 'body';
 
     Y.extend(EditorBase, Y.Base, {
         /**
@@ -87,7 +87,47 @@ YUI.add('editor-base', function(Y) {
         * @private
         */
         _lastBookmark: null,
+        /**
+        * Resolves the e.changedNode in the nodeChange event if it comes from the document. If
+        * the event came from the document, it will get the last child of the last child of the document
+        * and return that instead.
+        * @method _resolveChangedNode
+        * @param {Node} n The node to resolve
+        * @private
+        */
+        _resolveChangedNode: function(n) {
+            var inst = this.getInstance();
+            if (inst && n.test('html')) {
+                var lc = inst.one(BODY).one(LAST_CHILD), found, lc2;
+                while (!found) {
+                    if (lc) {
+                        lc2 = lc.one(LAST_CHILD);
+                        if (lc2) {
+                            lc = lc2;
+                        } else {
+                            found = true;
+                        }
+                    } else {
+                        found = true;
+                    }
+                }
+                if (lc) {
+                    if (lc.test('br')) {
+                        if (lc.previous()) {
+                            lc = lc.previous();
+                        } else {
+                            lc = lc.get('parentNode');
+                        }
+                    }
+                    if (lc) {
+                        n = lc;
+                    }
+                }
+                
 
+            }
+            return n;
+        },
         /**
         * The default handler for the nodeChange event.
         * @method _defNodeChangeFn
@@ -101,11 +141,15 @@ YUI.add('editor-base', function(Y) {
                 btag = inst.Selection.DEFAULT_BLOCK_TAG;
 
             if (Y.UA.ie) {
-    	        sel = inst.config.doc.selection.createRange();
-                if (sel.getBookmark) {
-                    this._lastBookmark = sel.getBookmark();
-                }
+                try {
+                    sel = inst.config.doc.selection.createRange();
+                    if (sel.getBookmark) {
+                        this._lastBookmark = sel.getBookmark();
+                    }
+                } catch (ie) {}
             }
+
+            e.changedNode = this._resolveChangedNode(e.changedNode);
 
             /*
             * @TODO
@@ -117,18 +161,21 @@ YUI.add('editor-base', function(Y) {
             switch (e.changedType) {
                 case 'keydown':
                     inst.later(100, inst, inst.Selection.cleanCursor);
-                    //inst.Selection.cleanCursor();
                     break;
                 case 'tab':
                     if (!e.changedNode.test('li, li *') && !e.changedEvent.shiftKey) {
-                        e.changedEvent.preventDefault();
-
+                        e.changedEvent.frameEvent.preventDefault();
                         Y.log('Overriding TAB key to insert HTML: HALTING', 'info', 'editor');
-                        sel = new inst.Selection();
-                        sel.setCursor();
-                        cur = sel.getCursor();
-                        cur.insert(EditorBase.TABKEY, 'before');
-                        sel.focusCursor();
+                        if (Y.UA.webkit) {
+                            this.execCommand('inserttext', '\t');
+                        } else {
+                            sel = new inst.Selection();
+                            sel.setCursor();
+                            cur = sel.getCursor();
+                            cur.insert(EditorBase.TABKEY, 'before');
+                            sel.focusCursor();
+                            inst.Selection.cleanCursor();
+                        }
                     }
                     break;
                 case 'enter-up':
@@ -154,10 +201,10 @@ YUI.add('editor-base', function(Y) {
                     if (para.test(btag)) {
                         var prev = para.previous(), lc, lc2, found = false;
                         if (prev) {
-                            lc = prev.one(':last-child');
+                            lc = prev.one(LAST_CHILD);
                             while (!found) {
                                 if (lc) {
-                                    lc2 = lc.one(':last-child');
+                                    lc2 = lc.one(LAST_CHILD);
                                     if (lc2) {
                                         lc = lc2;
                                     } else {
@@ -371,14 +418,17 @@ YUI.add('editor-base', function(Y) {
         */
         _onFrameActivate: function() {
             if (this._lastBookmark) {
-                Y.log('IE Activate handler, resetting cursor position', 'info', 'editor');
-                var inst = this.getInstance(),
-                    sel = inst.config.doc.selection.createRange(),
-                    bk = sel.moveToBookmark(this._lastBookmark);
+                try {
+                    Y.log('IE Activate handler, resetting cursor position', 'info', 'editor');
+                    var inst = this.getInstance(),
+                        sel = inst.config.doc.selection.createRange(),
+                        bk = sel.moveToBookmark(this._lastBookmark);
 
-                //sel.collapse(true);
-                sel.select();
-                this._lastBookmark = null;
+                    sel.select();
+                    this._lastBookmark = null;
+                } catch (e) {
+                    Y.log('IE Activate handler, FAILED', 'warn', 'editor');
+                }
             }
         },
         /**

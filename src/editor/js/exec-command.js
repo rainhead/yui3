@@ -36,6 +36,13 @@
             */
             command: function(action, value) {
                 var fn = ExecCommand.COMMANDS[action];
+                
+                Y.later(0, this, function() {
+                    var inst = this.getInstance();
+                    if (inst && inst.Selection) {
+                        inst.Selection.cleanCursor();
+                    }
+                });
 
                 Y.log('execCommand(' + action + '): "' + value + '"', 'info', 'exec-command');
                 if (fn) {
@@ -221,7 +228,7 @@
                         sel = new inst.Selection(), n;
 
                     if (!Y.UA.ie) {
-                        this._command('styleWithCSS', 'true');
+                        this._command('useCSS', false);
                     }
                     if (inst.Selection.hasCursor()) {
                         if (sel.isCollapsed) {
@@ -238,9 +245,6 @@
                         }
                     } else {
                         this._command(cmd, val);
-                    }
-                    if (!Y.UA.ie) {
-                        this._command('styleWithCSS', false);
                     }
                 },
                 /**
@@ -259,7 +263,7 @@
                         cmd = 'hilitecolor';
                     }
                     if (!Y.UA.ie) {
-                        this._command('styleWithCSS', 'true');
+                        this._command('useCSS', false);
                     }
                     if (inst.Selection.hasCursor()) {
                         if (sel.isCollapsed) {
@@ -268,7 +272,6 @@
                                 n = sel.anchorNode;
                             } else {
                                 n = this.command('inserthtml', '<span style="background-color: ' + val + '">' + inst.Selection.CURSOR + '</span>');
-
                                 sel.focusCursor(true, true);
                             }
                             return n;
@@ -276,19 +279,7 @@
                             return this._command(cmd, val);
                         }
                     } else {
-                        if (Y.UA.gecko && sel.isCollapsed) {
-                            this._command('inserthtml', '<span id="yui3-bcolor" style="background-color: ' + val + '"></span>');
-                            var c = inst.one('#yui3-bcolor');
-                            if (c) {
-                                c.set('id', '');
-                                c.removeAttribute('id');
-                            }
-                        } else {
-                            this._command(cmd, val);
-                        }
-                    }
-                    if (!Y.UA.ie) {
-                        this._command('styleWithCSS', false);
+                        this._command(cmd, val);
                     }
                 },
                 /**
@@ -344,7 +335,7 @@
                         if (sel.anchorNode.test('font')) {
                             sel.anchorNode.set('size', val);
                         } else if (Y.UA.gecko) {
-                            var p = sel.anchorNode.ancestor('p');
+                            var p = sel.anchorNode.ancestor(inst.Selection.DEFAULT_BLOCK_TAG);
                             if (p) {
                                 p.setStyle('fontSize', '');
                             }

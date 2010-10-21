@@ -7,7 +7,8 @@
 */
 
 var TRANSITION = '-webkit-transition',
-    TRANSITION_PROPERTY_CAMEL = 'WebkitTransition',
+    TRANSITION_CAMEL = 'WebkitTransition',
+    TRANSITION_PROPERTY_CAMEL = 'WebkitTransitionProperty',
     TRANSITION_PROPERTY = '-webkit-transition-property',
     TRANSITION_DURATION = '-webkit-transition-duration',
     TRANSITION_TIMING_FUNCTION = '-webkit-transition-timing-function',
@@ -26,6 +27,19 @@ var TRANSITION = '-webkit-transition',
 
 Transition = function() {
     this.init.apply(this, arguments);
+};
+
+Transition._fx = {};
+Transition._hasEnd = {};
+
+Transition.add = function(name, config) {
+    if (typeof name !== 'string') {
+        Y.Object.each(name, function(v, n) {
+            Transition.add(n, v);
+        });
+    } else {
+        Transition._fx[name] = config;
+    }
 };
 
 Transition._toCamel = function(property) {
@@ -55,7 +69,7 @@ Transition._toHyphen = function(property) {
 };
 
 
-Transition._reKeywords = /^(?:node|duration|iterations|easing|delay)$/;
+Transition._reKeywords = /^(?:node|duration|iterations|easing|delay|on|onstart|onend)$/i;
 
 Transition.useNative = false;
 
@@ -93,8 +107,6 @@ Transition.prototype = {
             anim._count = 0; // track number of animated properties
             anim._running = false;
 
-            anim.initAttrs(config);
-
         }
 
         return anim;
@@ -126,9 +138,25 @@ Transition.prototype = {
             val = val.call(node, node);
         }
 
-        // take control if another transition owns this property
-        if (attr && attr.transition && attr.transition !== anim) {
-            attr.transition._count--; // remapping attr to this transition
+        if (attr && attr.transition) {
+            // take control if another transition owns this property
+            if (attr.transition !== anim) {
+                attr.transition._count--; // remapping attr to this transition
+            }
+        } else {
+            // when size is auto or % webkit starts from zero instead of computed 
+            // (https://bugs.webkit.org/show_bug.cgi?id=16020)
+            // workaround by setting to current value
+            // TODO: move to run
+/*
+            if (prop == 'height' || prop == 'width') {
+                // avoid setting if already set or transitioning
+                // TODO: handle inline percent / auto
+                if (!node._node.style[prop] && !node.getStyle(TRANSITION_PROPERTY_CAMEL) == 'prop') {
+                    node.setStyle(prop, node.getComputedStyle(prop));
+                }
+            }
+*/
         }
 
         anim._count++; // properties per transition
@@ -181,19 +209,30 @@ Transition.prototype = {
      * @private
      */    
     run: function(callback) {
-        var anim = this;
+        var anim = this,
+            node = anim._node,
+            config = anim._config,
+            data = {
+                type: 'transition:start',
+                config: config
+            };
+
 
         if (!anim._running) {
             anim._running = true;
 
-            anim._node.fire('transition:start', {
-                type: 'transition:start',
-                config: anim._config
-            });
+            anim._node.fire('transition:start', data);
 
-            anim._start();
+            if (config.on && config.on.start) {
+                config.on.start.call(node, data);
+            }
+
+            anim.initAttrs(anim._config);
+
             anim._callback = callback;
+            anim._start();
         }
+
 
         return anim;
     },
@@ -248,6 +287,7 @@ Transition.prototype = {
 
                     transitionText += hyphy + ',';
                     cssText += hyphy + ': ' + attr.value + '; ';
+
                 } else {
                     this.removeProperty(name);
                 }
@@ -260,13 +300,15 @@ Transition.prototype = {
         delay = delay.replace(/,$/, ';');
 
         // only one native end event per node
-        if (!node._hasTransitionEnd) {
+        if (!Transition._hasEnd[uid]) {
             anim._detach = node.on(TRANSITION_END, anim._onNativeEnd);
-            node._hasTransitionEnd = true;
+            Transition._hasEnd[uid] = true;
 
         }
 
-        style.cssText += transitionText + duration + easing + delay + cssText;
+        //setTimeout(function() { // allow updates to apply (size fix, onstart, etc)
+            style.cssText += transitionText + duration + easing + delay + cssText;
+        //}, 1);
 
     },
 
@@ -274,15 +316,27 @@ Transition.prototype = {
         var anim = this,
             node = anim._node,
             callback = anim._callback,
+            config = anim._config,
             data = {
                 type: 'transition:end',
-                config: anim._config,
+                config: config,
                 elapsedTime: elapsed 
             };
 
         anim._running = false;
-        if (callback) {
-            anim._callback = null;
+        anim._callback = null;
+
+        if (config.on && config.on.end) {
+            setTimeout(function() { // IE: allow previous update to finish
+                config.on.end.call(node, data);
+
+                // nested to ensure proper fire order
+                if (callback) {
+                    callback.call(node, data);
+                }
+
+            }, 1);
+        } else if (callback) {
             setTimeout(function() { // IE: allow previous update to finish
                 callback.call(node, data);
             }, 1);
@@ -298,7 +352,7 @@ Transition.prototype = {
         if (typeof value === 'string') {
             value = value.replace(new RegExp('(?:^|,\\s)' + name + ',?'), ',');
             value = value.replace(/^,|,$/, '');
-            node.setStyle(TRANSITION_PROPERTY_CAMEL, value);
+            node.setStyle(TRANSITION_CAMEL, value);
         }
     },
 
@@ -310,22 +364,28 @@ Transition.prototype = {
             elapsed = event.elapsedTime,
             attrs = Transition._nodeAttrs[uid],
             attr = attrs[name],
-            anim = (attr) ? attr.transition : null;
+            anim = (attr) ? attr.transition : null,
+            data = {
+                type: 'propertyEnd',
+                propertyName: name,
+                elapsedTime: elapsed
+            },
+            config;
 
         if (anim) {
             anim.removeProperty(name);
             anim._endNative(name);
+            config = anim._config[name];
 
-            node.fire('transition:propertyEnd', {
-                type: 'propertyEnd',
-                propertyName: name,
-                elapsedTime: elapsed
-            });
+            if (config && config.on && config.on.end) {
+                config.on.end.call(node, data);
+            }
+
+            node.fire('transition:propertyEnd', data);
 
             if (anim._count <= 0)  { // after propertEnd fires
                 anim._end(elapsed);
             }
-
         }
     },
 
@@ -366,9 +426,40 @@ Y.TransitionNative = Transition; // TODO: remove
  *   @param {Function} callback A function to run after the transition has completed. 
  *   @chainable
 */
-Y.Node.prototype.transition = function(config, callback) {
-    var anim = this._transition;
+Y.Node.prototype.transition = function(name, config, callback) {
+    var 
+        transitionAttrs = Transition._nodeAttrs[Y.stamp(this)],
+        anim = (transitionAttrs) ? transitionAttrs.transition : null,
+        fxConfig,
+        prop;
     
+    if (typeof name === 'string') { // named effect, pull config from registry
+        if (typeof config === 'function') {
+            callback = config;
+            config = null;
+        }
+
+        fxConfig = Transition._fx[name];
+
+        if (config && typeof config !== 'boolean') {
+            config = Y.clone(config);
+
+            for (prop in fxConfig) {
+                if (fxConfig.hasOwnProperty(prop)) {
+                    if (! (prop in config)) {
+                        config[prop] = fxConfig[prop]; 
+                    }
+                }
+            }
+        } else {
+            config = fxConfig;
+        }
+
+    } else { // name is a config, config is a callback or undefined
+        callback = config;
+        config = name;
+    }
+
     if (anim && !anim._running) {
         anim.init(this, config);
     } else {
@@ -378,6 +469,58 @@ Y.Node.prototype.transition = function(config, callback) {
     anim.run(callback);
     return this;
 };
+
+Y.Node.prototype.show = function(name, config, callback) {
+    this._show(); // show prior to transition
+    if (name && Y.Transition) {
+        if (typeof name !== 'string' && !name.push) { // named effect or array of effects supercedes default
+            if (typeof config === 'function') {
+                callback = config;
+                config = name;
+            }
+            name = this.SHOW_TRANSITION; 
+        }    
+        this.transition(name, config, callback);
+    }    
+    else if (name && !Y.Transition) { Y.log('unable to transition show; missing transition module', 'warn', 'node'); }
+    return this;
+};
+
+var _wrapCallBack = function(callback, fn) {
+    return function() {
+        if (fn) {
+            fn.call(this);
+        }
+        callback.apply(this, arguments);
+    };
+};
+
+Y.Node.prototype.hide = function(name, config, callback) {
+    if (name && Y.Transition) {
+        if (typeof config === 'function') {
+            callback = config;
+            config = null;
+        }
+
+        if (callback) { // need to hide when transition ends
+            callback = _wrapCallBack(callback, this._hide); // wrap with existing callback
+        } else {
+            callback = this._hide;
+        }    
+        if (typeof name !== 'string' && !name.push) { // named effect or array of effects supercedes default
+            if (typeof config === 'function') {
+                callback = config;
+                config = name;
+            }
+            name = this.HIDE_TRANSITION; 
+        }    
+        this.transition(name, config, callback);
+    } else if (name && !Y.Transition) { Y.log('unable to transition hide; missing transition module', 'warn', 'node'); // end if on nex
+    } else {
+        this._hide();
+    }    
+    return this;
+}; 
 
 /** 
  *   Animate one or more css properties to a given value. Requires the "transition" module.
@@ -406,9 +549,61 @@ Y.Node.prototype.transition = function(config, callback) {
  *   @chainable
 */
 Y.NodeList.prototype.transition = function(config, callback) {
-    this.each(function(node) {
-        node.transition(config, callback);
-    });
+    var nodes = this._nodes,
+        i = 0,
+        node;
+
+    while ((node = nodes[i++])) {
+        Y.one(node).transition(config, callback);
+    }
 
     return this;
 };
+
+Transition.add({
+    fadeOut: {
+        opacity: 0,
+        duration: 0.5,
+        easing: 'ease-out'
+    },
+
+    fadeIn: {
+        opacity: 1,
+        duration: 0.5,
+        easing: 'ease-in'
+    },
+
+    sizeOut: {
+        height: 0,
+        width: 0,
+        duration: 0.75,
+        easing: 'ease-out'
+    },
+
+    sizeIn: {
+        height: function(node) {
+            return node.get('scrollHeight') + 'px';
+        },
+        width: function(node) {
+            return node.get('scrollWidth') + 'px';
+        },
+        duration: 0.5,
+        easing: 'ease-in',
+        
+        on: {
+            start: function() {
+                var overflow = this.getStyle('overflow');
+                if (overflow !== 'hidden') { // enable scrollHeight/Width
+                    this.setStyle('overflow', 'hidden');
+                    this._transitionOverflow = overflow;
+                }
+            },
+
+            end: function() {
+                if (this._transitionOverflow) { // revert overridden value
+                    this.setStyle('overflow', this._transitionOverflow);
+                }
+            }
+        } 
+    }
+});

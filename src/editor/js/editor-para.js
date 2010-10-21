@@ -72,7 +72,7 @@
                 case 'backspace-down':
                 case 'delete-up':
                     if (!Y.UA.ie) {
-                        var ps = inst.all(FIRST_P), br, item, html, txt, p;
+                        var ps = inst.all(FIRST_P), br, item, html, txt, p, imgs;
                         item = inst.one(BODY);
                         if (ps.item(0)) {
                             item = ps.item(0);
@@ -85,8 +85,9 @@
 
                         txt = inst.Selection.getText(item);
                         txt = txt.replace(/ /g, '').replace(/\n/g, '');
+                        imgs = item.all('img');
                         
-                        if (txt.length === 0) {
+                        if (txt.length === 0 && !imgs.size()) {
                             //God this is horrible..
                             if (!item.test(P)) {
                                 this._fixFirstPara();
@@ -102,7 +103,7 @@
                                 p = p.ancestor(P);
                             }
                             if (p) {
-                                if (!p.previous() && p.get('parentNode').test(BODY)) {
+                                if (!p.previous() && p.get('parentNode') && p.get('parentNode').test(BODY)) {
                                     Y.log('Stopping the backspace event', 'warn', 'editor-para');
                                     e.changedEvent.frameEvent.halt();
                                 }
@@ -124,6 +125,18 @@
                                 }
                             }
                         }
+                    }
+                    if (Y.UA.gecko) {
+                        /**
+                        * This forced FF to redraw the content on backspace.
+                        * On some occasions FF will leave a cursor residue after content has been deleted.
+                        * Dropping in the empty textnode and then removing it causes FF to redraw and
+                        * remove the "ghost cursors"
+                        */
+                        var d = e.changedNode,
+                            t = inst.config.doc.createTextNode(' ');
+                        d.appendChild(t);
+                        d.removeChild(t);
                     }
                     break;
             }

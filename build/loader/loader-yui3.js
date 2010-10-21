@@ -116,6 +116,32 @@ YUI.Env[Y.version].modules = YUI.Env[Y.version].modules || {
                 ]
             }, 
             "autocomplete-list": {
+                "plugins": {
+                    "autocomplete-list-keys": {
+                        "condition": {
+                            "test": function (Y) {
+    // Only add keyboard support to autocomplete-list if this doesn't appear to
+    // be an iOS or Android-based mobile device.
+    //
+    // There's currently no feasible way to actually detect whether a device has
+    // a hardware keyboard, so this sniff will have to do. It can easily be
+    // overridden by manually loading the autocomplete-list-keys module.
+    //
+    // Worth noting: even though iOS supports bluetooth keyboards, Mobile Safari
+    // doesn't fire the keyboard events used by AutoCompleteList, so there's
+    // no point loading the -keys module even when a bluetooth keyboard may be
+    // available.
+    return !(Y.UA.ios || Y.UA.android);
+}, 
+                            "trigger": "autocomplete-list"
+                        }, 
+                        "path": "autocomplete/autocomplete-list-keys-min.js", 
+                        "requires": [
+                            "autocomplete-list", 
+                            "base-build"
+                        ]
+                    }
+                }, 
                 "requires": [
                     "autocomplete-base", 
                     "widget", 
@@ -683,7 +709,7 @@ YUI.Env[Y.version].modules = YUI.Env[Y.version].modules || {
             }, 
             "editor-para": {
                 "requires": [
-                    "editor-base"
+                    "node"
                 ]
             }, 
             "exec-command": {
@@ -978,6 +1004,12 @@ YUI.Env[Y.version].modules = YUI.Env[Y.version].modules || {
                     "event-simulate"
                 ]
             }, 
+            "node-load": {
+                "requires": [
+                    "node-base", 
+                    "io-base"
+                ]
+            }, 
             "shim-plugin": {
                 "requires": [
                     "node-style", 
@@ -1080,9 +1112,18 @@ YUI.Env[Y.version].modules = YUI.Env[Y.version].modules || {
         ]
     }, 
     "pluginhost": {
-        "requires": [
-            "yui-base"
-        ]
+        "submodules": {
+            "pluginhost-base": {
+                "requires": [
+                    "yui-base"
+                ]
+            }, 
+            "pluginhost-config": {
+                "requires": [
+                    "pluginhost-base"
+                ]
+            }
+        }
     }, 
     "profiler": {
         "requires": [
@@ -1378,13 +1419,28 @@ YUI.Env[Y.version].modules = YUI.Env[Y.version].modules || {
                     "base-pluginhost", 
                     "node-base", 
                     "node-style", 
-                    "node-event-delegate", 
                     "classnamemanager"
+                ]
+            }, 
+            "widget-base-ie": {
+                "requires": [
+                    "widget-base"
                 ]
             }, 
             "widget-htmlparser": {
                 "requires": [
                     "widget-base"
+                ]
+            }, 
+            "widget-skin": {
+                "requires": [
+                    "widget-base"
+                ]
+            }, 
+            "widget-uievents": {
+                "requires": [
+                    "widget-base", 
+                    "node-event-delegate"
                 ]
             }
         }
@@ -1450,7 +1506,7 @@ YUI.Env[Y.version].modules = YUI.Env[Y.version].modules || {
         }
     }
 };
-YUI.Env[Y.version].md5 = 'af22a015d64d4228aaddc08bfb2d3a09';
+YUI.Env[Y.version].md5 = '125d186662061c5fadd39f49d1a983a8';
 
 
 }, '@VERSION@' ,{requires:['loader-base']});
