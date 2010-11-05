@@ -46,7 +46,7 @@
                 defaultFn: this._defNodeChangeFn
             });
             
-            this.plug(Y.Plugin.EditorPara);
+            //this.plug(Y.Plugin.EditorPara);
         },
         destructor: function() {
             this.frame.destroy();
@@ -95,9 +95,9 @@
         * @private
         */
         _resolveChangedNode: function(n) {
-            var inst = this.getInstance();
-            if (inst && n.test('html')) {
-                var lc = inst.one(BODY).one(LAST_CHILD), found, lc2;
+            var inst = this.getInstance(), lc, lc2, found;
+            if (inst && n && n.test('html')) {
+                lc = inst.one(BODY).one(LAST_CHILD);
                 while (!found) {
                     if (lc) {
                         lc2 = lc.one(LAST_CHILD);
@@ -123,7 +123,6 @@
                     }
                 }
                 
-
             }
             return n;
         },
@@ -160,6 +159,7 @@
             switch (e.changedType) {
                 case 'keydown':
                     inst.later(100, inst, inst.Selection.cleanCursor);
+                    //inst.Selection.cleanCursor();
                     break;
                 case 'tab':
                     if (!e.changedNode.test('li, li *') && !e.changedEvent.shiftKey) {
@@ -177,55 +177,16 @@
                         }
                     }
                     break;
-                case 'enter-up':
-                    var para = ((this._lastPara) ? this._lastPara : e.changedNode),
-                        b = para.one('br.yui-cursor');
-
-                    if (this._lastPara) {
-                        delete this._lastPara;
-                    }
-
-                    if (b) {
-                        if (b.previous() || b.next()) {
-                            b.remove();
-                        }
-                    }
-                    if (!para.test(btag)) {
-                        var para2 = para.ancestor(btag);
-                        if (para2) {
-                            para = para2;
-                            para2 = null;
-                        }
-                    }
-                    if (para.test(btag)) {
-                        var prev = para.previous(), lc, lc2, found = false;
-                        if (prev) {
-                            lc = prev.one(LAST_CHILD);
-                            while (!found) {
-                                if (lc) {
-                                    lc2 = lc.one(LAST_CHILD);
-                                    if (lc2) {
-                                        lc = lc2;
-                                    } else {
-                                        found = true;
-                                    }
-                                } else {
-                                    found = true;
-                                }
-                            }
-                            if (lc) {
-                                this.copyStyles(lc, para);
-                            }
-                        }
-                    }
-                    break;
             }
-            if (Y.UA.gecko) {
-                if (e.changedNode && !e.changedNode.test(btag)) {
-                    var p = e.changedNode.ancestor(btag);
-                    if (p) {
-                        this._lastPara = p;
-                    }
+            if (Y.UA.webkit && e.commands && (e.commands.indent || e.commands.outdent)) {
+                /**
+                * When executing execCommand 'indent or 'outdent' Webkit applies
+                * a class to the BLOCKQUOTE that adds left/right margin to it
+                * This strips that style so it is just a normal BLOCKQUOTE
+                */
+                var bq = inst.all('.webkit-indent-blockquote');
+                if (bq.size()) {
+                    bq.setStyle('margin', '');
                 }
             }
 
@@ -399,7 +360,7 @@
             this.frame.on('dom:keydown', Y.bind(this._onFrameKeyDown, this));
 
             if (Y.UA.ie) {
-                this.frame.on('dom:activate', Y.bind(this._onFrameActivate, this));
+                //this.frame.on('dom:activate', Y.bind(this._onFrameActivate, this));
                 this.frame.on('dom:keyup', Y.throttle(Y.bind(this._onFrameKeyUp, this), 800));
                 this.frame.on('dom:keypress', Y.throttle(Y.bind(this._onFrameKeyPress, this), 800));
             } else {
@@ -422,7 +383,7 @@
                     var inst = this.getInstance(),
                         sel = inst.config.doc.selection.createRange(),
                         bk = sel.moveToBookmark(this._lastBookmark);
-
+                    
                     sel.select();
                     this._lastBookmark = null;
                 } catch (e) {
@@ -775,14 +736,14 @@
             * @attribute content
             */
             content: {
-                value: '<br>',
+                value: '<br class="yui-cursor">',
                 setter: function(str) {
                     if (str.substr(0, 1) === "\n") {
                         Y.log('Stripping first carriage return from content before injecting', 'warn', 'editor');
                         str = str.substr(1);
                     }
                     if (str === '') {
-                        str = '<br>';
+                        str = '<br class="yui-cursor">';
                     }
                     return this.frame.set('content', str);
                 },

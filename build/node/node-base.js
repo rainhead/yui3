@@ -314,19 +314,6 @@ Y_Node.one = function(node) {
 };
 
 /**
- * Returns a single Node instance bound to the node or the
- * first element matching the given selector.
- * @method Y.get
- * @deprecated Use Y.one
- * @static
- * @param {String | HTMLElement} node a node or Selector
- * @param {Y.Node || HTMLElement} doc an optional document to scan. Defaults to Y.config.doc.
- */
-Y_Node.get = function() {
-    return Y_Node.one.apply(Y_Node, arguments);
-};
-
-/**
  * Creates a new dom node using the provided markup string.
  * @method create
  * @static
@@ -403,24 +390,6 @@ Y_Node.ATTRS = {
             Y_DOM.setValue(this._node, val);
             return val;
         }
-    },
-
-
-    /*
-     * Flat data store for off-DOM usage
-     * @config data
-     * @type any
-     * @deprecated Use getData/setData
-     */
-    data: {
-        getter: function() {
-            return this._dataVal;
-        },
-        setter: function(val) {
-            this._dataVal = val;
-            return val;
-        },
-        value: null
     }
 };
 
@@ -741,17 +710,6 @@ Y.mix(Y_Node.prototype, {
     },
 
     /**
-     * Retrieves a Node instance of nodes based on the given CSS selector.
-     * @method query
-     * @deprecated Use one()
-     * @param {string} selector The CSS selector to test against.
-     * @return {Node} A Node instance for the matching HTMLElement.
-     */
-    query: function(selector) {
-        return this.one(selector);
-    },
-
-    /**
      * Retrieves a nodeList based on the given CSS selector.
      * @method all
      *
@@ -763,17 +721,6 @@ Y.mix(Y_Node.prototype, {
         nodelist._query = selector;
         nodelist._queryRoot = this._node;
         return nodelist;
-    },
-
-    /**
-     * Retrieves a nodeList based on the given CSS selector.
-     * @method queryAll
-     * @deprecated Use all()
-     * @param {string} selector The CSS selector to test against.
-     * @return {NodeList} A NodeList instance for the matching HTMLCollection/Array.
-     */
-    queryAll: function(selector) {
-        return this.all(selector);
     },
 
     // TODO: allow fn test
@@ -921,42 +868,6 @@ Y.mix(Y_Node.prototype, {
 
         ret = node[method](a, b, c, d, e);
         return Y_Node.scrubVal(ret, this);
-    },
-
-    /**
-     * Applies the given function to each Node in the NodeList.
-     * @method each
-     * @deprecated Use NodeList
-     * @param {Function} fn The function to apply
-     * @param {Object} context optional An optional context to apply the function with
-     * Default context is the NodeList instance
-     * @chainable
-     */
-    each: function(fn, context) {
-        context = context || this;
-        return fn.call(context, this);
-    },
-
-    /**
-     * Retrieves the Node instance at the given index.
-     * @method item
-     * @deprecated Use NodeList
-     *
-     * @param {Number} index The index of the target Node.
-     * @return {Node} The Node instance at the given index.
-     */
-    item: function(index) {
-        return this;
-    },
-
-    /**
-     * Returns the current number of items in the Node.
-     * @method size
-     * @deprecated Use NodeList
-     * @return {Int} The number of items in the Node.
-     */
-    size: function() {
-        return this._node ? 1 : 0;
     },
 
     /**
@@ -1157,20 +1068,54 @@ Y.mix(Y_Node.prototype, {
     SHOW_TRANSITION: null,
     HIDE_TRANSITION: null,
 
+    /**
+     * Makes the node visible.
+     * If the "transition" module is loaded, show optionally
+     * animates the showing of the node using either the default
+     * transition effect ('fadeIn'), or the given named effect.
+     * @method show
+     * @param {String} name A named Transition effect to use as the show effect. 
+     * @param {Object} config Options to use with the transition. 
+     * @param {Function} callback An optional function to run after the transition completes. 
+     * @chainable
+     */
     show: function(name, config, callback) {
         this._show();
         return this;
     },
 
+    /**
+     * The implementation for showing nodes.
+     * Default is to toggle the style.display property.
+     * @protected
+     * @chainable
+     */
     _show: function() {
         this.setStyle('display', '');
     },
 
+    /**
+     * Hides the node.
+     * If the "transition" module is loaded, hide optionally
+     * animates the hiding of the node using either the default
+     * transition effect ('fadeOut'), or the given named effect.
+     * @method hide
+     * @param {String} name A named Transition effect to use as the show effect. 
+     * @param {Object} config Options to use with the transition. 
+     * @param {Function} callback An optional function to run after the transition completes. 
+     * @chainable
+     */
     hide: function(name, config, callback) {
         this._hide();
         return this;
     },
 
+    /**
+     * The implementation for hiding nodes.
+     * Default is to toggle the style.display property.
+     * @protected
+     * @chainable
+     */
     _hide: function() {
         this.setStyle('display', 'none');
     },
@@ -1179,14 +1124,19 @@ Y.mix(Y_Node.prototype, {
         return (this.get('nodeType') === 11);
     },
 
+    /**
+     * Removes all of the child nodes from the node.
+     * @param {Boolean} destroy Whether the nodes should also be destroyed. 
+     * @chainable
+     */
     empty: function(destroy) {
         this.get('childNodes').remove(destroy);
+        return this;
     }
 
 }, true);
 
 Y.Node = Y_Node;
-Y.get = Y.Node.get;
 Y.one = Y.Node.one;
 /**
  * The NodeList module provides support for managing collections of Nodes.
@@ -1686,6 +1636,7 @@ Y.Node.all = Y.all;
 Y.Array.each([
     /**
      * Passes through to DOM method.
+     * @for Node
      * @method removeChild
      * @param {HTMLElement | Node} node Node to be removed 
      * @return {Node} The removed node 
@@ -1782,7 +1733,7 @@ Y.Array.each([
      * @method createCaption
      * @chainable
      */
-    'createCaption',
+    'createCaption'
 
 ], function(method) {
     Y.Node.prototype[method] = function(arg1, arg2, arg3) {
@@ -1821,22 +1772,23 @@ Y.Node.importMethod(Y.DOM, [
      */
     'getAttribute',
 
+    /**
+     * Wraps the given HTML around the node.
+     * @method wrap
+     * @param {String} html The markup to wrap around the node. 
+     * @chainable
+     */
     'wrap',
 
+    /**
+     * Removes the node's parent node. 
+     * @method unwrap
+     * @chainable
+     */
     'unwrap'
 ]);
 
-/**
- * Allows setting attributes on DOM nodes, normalizing in some cases.
- * This passes through to the DOM node, allowing for custom attributes.
- * @method setAttribute
- * @see Node
- * @for NodeList
- * @chainable
- * @param {string} name The attribute name 
- * @param {string} value The value to set
- */
-
+Y.NodeList.importMethod(Y.Node.prototype, [
 /**
  * Allows getting attributes on DOM nodes, normalizing in some cases.
  * This passes through to the DOM node, allowing for custom attributes.
@@ -1847,6 +1799,19 @@ Y.Node.importMethod(Y.DOM, [
  * @return {string} The attribute value 
  */
 
+    'getAttribute',
+/**
+ * Allows setting attributes on DOM nodes, normalizing in some cases.
+ * This passes through to the DOM node, allowing for custom attributes.
+ * @method setAttribute
+ * @see Node
+ * @for NodeList
+ * @chainable
+ * @param {string} name The attribute name 
+ * @param {string} value The value to set
+ */
+    'setAttribute',
+ 
 /**
  * Allows for removing attributes on DOM nodes.
  * This passes through to the DOM node, allowing for custom attributes.
@@ -1855,7 +1820,21 @@ Y.Node.importMethod(Y.DOM, [
  * @for NodeList
  * @param {string} name The attribute to remove 
  */
-Y.NodeList.importMethod(Y.Node.prototype, ['getAttribute', 'setAttribute', 'removeAttribute']);
+    'removeAttribute',
+/**
+ * Removes the parent node from node in the list. 
+ * @method unwrap
+ * @chainable
+ */
+    'unwrap',
+/**
+ * Wraps the given HTML around each node.
+ * @method wrap
+ * @param {String} html The markup to wrap around the node. 
+ * @chainable
+ */
+    'wrap'
+]);
 (function(Y) {
     var methods = [
     /**
@@ -2047,7 +2026,60 @@ Y.mix(Y.Node.prototype, {
 var Y_NodeList = Y.NodeList,
     ArrayProto = Array.prototype,
     ArrayMethods = [
-        'concat', 'pop', 'push', 'shift', 'slice', 'splice', 'unshift'
+        /** Returns a new NodeList combining the given NodeList(s) 
+          * @for NodeList
+          * @method concat
+          * @param {NodeList | Array} valueN Arrays/NodeLists and/or values to
+          * concatenate to the resulting NodeList
+          * @return {NodeList} A new NodeList comprised of this NodeList joined with the input.
+          */
+        'concat',
+        /** Removes the first last from the NodeList and returns it.
+          * @for NodeList
+          * @method pop
+          * @return {Node} The last item in the NodeList.
+          */
+        'pop',
+        /** Adds the given Node(s) to the end of the NodeList. 
+          * @for NodeList
+          * @method push
+          * @param {Node | DOMNode} nodeN One or more nodes to add to the end of the NodeList. 
+          */
+        'push',
+        /** Removes the first item from the NodeList and returns it.
+          * @for NodeList
+          * @method shift
+          * @return {Node} The first item in the NodeList.
+          */
+        'shift',
+        /** Returns a new NodeList comprising the Nodes in the given range. 
+          * @for NodeList
+          * @method slice
+          * @param {Number} begin Zero-based index at which to begin extraction.
+          As a negative index, start indicates an offset from the end of the sequence. slice(-2) extracts the second-to-last element and the last element in the sequence.
+          * @param {Number} end Zero-based index at which to end extraction. slice extracts up to but not including end.
+          slice(1,4) extracts the second element through the fourth element (elements indexed 1, 2, and 3).
+          As a negative index, end indicates an offset from the end of the sequence. slice(2,-1) extracts the third element through the second-to-last element in the sequence.
+          If end is omitted, slice extracts to the end of the sequence.
+          * @return {NodeList} A new NodeList comprised of this NodeList joined with the input.
+          */
+        'slice',
+        /** Changes the content of the NodeList, adding new elements while removing old elements.
+          * @for NodeList
+          * @method splice
+          * @param {Number} index Index at which to start changing the array. If negative, will begin that many elements from the end.
+          * @param {Number} howMany An integer indicating the number of old array elements to remove. If howMany is 0, no elements are removed. In this case, you should specify at least one new element. If no howMany parameter is specified (second syntax above, which is a SpiderMonkey extension), all elements after index are removed.
+          * {Node | DOMNode| element1, ..., elementN 
+          The elements to add to the array. If you don't specify any elements, splice simply removes elements from the array.
+          * @return {NodeList} The element(s) removed.
+          */
+        'splice',
+        /** Adds the given Node(s) to the beginning of the NodeList. 
+          * @for NodeList
+          * @method push
+          * @param {Node | DOMNode} nodeN One or more nodes to add to the NodeList. 
+          */
+        'unshift'
     ];
 
 

@@ -64,10 +64,6 @@ YUI.add('autocomplete-base', function(Y) {
  * &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;this._syncUIACBase();
  * &nbsp;&nbsp;&nbsp;&nbsp;},
  * &nbsp;
- * &nbsp;&nbsp;&nbsp;&nbsp;destructor: function () {
- * &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;this._destructorACBase();
- * &nbsp;&nbsp;&nbsp;&nbsp;}
- * &nbsp;
  * &nbsp;&nbsp;&nbsp;&nbsp;// Custom prototype methods and properties.
  * &nbsp;&nbsp;}, {
  * &nbsp;&nbsp;&nbsp;&nbsp;// Custom static methods and properties.
@@ -618,6 +614,19 @@ AutoCompleteBase.ATTRS = {
     },
 
     /**
+     * If the <code>inputNode</code> specified at instantiation time has a
+     * <code>node-tokeninput</code> plugin attached to it, this attribute will
+     * be a reference to the <code>Y.Plugin.TokenInput</code> instance.
+     *
+     * @attribute tokenInput
+     * @type Plugin.TokenInput
+     * @readonly
+     */
+    tokenInput: {
+        readOnly: true
+    },
+
+    /**
      * Current value of the input node.
      *
      * @attribute value
@@ -630,6 +639,17 @@ AutoCompleteBase.ATTRS = {
         // completion when the user changes the value, but not when we change
         // the value.
         value: ''
+    },
+
+    /**
+     * URL protocol to use when the <code>source</code> is set to a YQL query.
+     *
+     * @attribute yqlProtocol
+     * @type String
+     * @default 'http'
+     */
+    yqlProtocol: {
+        value: 'http'
     }
 };
 
@@ -695,17 +715,28 @@ AutoCompleteBase.prototype = {
     // -- Protected Lifecycle Methods ------------------------------------------
 
     /**
-     * Attaches AutoCompleteBase event listeners.
+     * Attaches event listeners and behaviors.
      *
      * @method _bindUIACBase
      * @protected
      */
     _bindUIACBase: function () {
-        var inputNode = this.get(INPUT_NODE);
+        var inputNode  = this.get(INPUT_NODE),
+            tokenInput = inputNode && inputNode.tokenInput;
+
+        // If the inputNode has a node-tokeninput plugin attached, bind to the
+        // plugin's inputNode instead.
+        if (tokenInput) {
+            inputNode = tokenInput.get(INPUT_NODE);
+            this._set('tokenInput', tokenInput);
+        }
 
         if (!inputNode) {
             Y.error('No inputNode specified.');
+            return;
         }
+
+        this._inputNode = inputNode;
 
         this._acBaseEvents = [
             // This is the valueChange event on the inputNode, provided by the
@@ -739,7 +770,9 @@ AutoCompleteBase.prototype = {
      */
     _syncUIACBase: function () {
         this._syncBrowserAutocomplete();
-        this.set(VALUE, this.get(INPUT_NODE).get(VALUE));
+
+        this.set(VALUE, this.get(INPUT_NODE).get(VALUE),
+                {src: AutoCompleteBase.UI_SRC});
     },
 
     // -- Protected Prototype Methods ------------------------------------------
@@ -896,20 +929,35 @@ AutoCompleteBase.prototype = {
         }
 
         yqlSource.sendRequest = function (request) {
-            var _sendRequest = function (request) {
-                var query = request.request;
+            var yqlRequest,
 
-                if (!that.get(REQUEST_TEMPLATE)) {
-                    query = encodeURIComponent(query);
-                }
+            _sendRequest = function (request) {
+                var query = request.request,
+                    callback, opts, yqlQuery;
 
                 if (cache[query]) {
                     that[_SOURCE_SUCCESS](cache[query], request);
                 } else {
-                    Y.YQL(Lang.sub(source, {query: query}), function (data) {
+                    callback = function (data) {
                         cache[query] = data;
                         that[_SOURCE_SUCCESS](data, request);
-                    });
+                    };
+
+                    opts     = {proto: that.get('yqlProtocol')};
+                    yqlQuery = Lang.sub(source, {query: query});
+
+                    // Only create a new YQLRequest instance if this is the
+                    // first request. For subsequent requests, we'll reuse the
+                    // original instance.
+                    if (yqlRequest) {
+                        yqlRequest._callback = callback;
+                        yqlRequest._opts     = opts;
+                        yqlRequest._params.q = yqlQuery;
+                    } else {
+                        yqlRequest = new Y.YQLRequest(yqlQuery, callback, null, opts);
+                    }
+
+                    yqlRequest.send();
                 }
             };
 
@@ -953,6 +1001,10 @@ AutoCompleteBase.prototype = {
             // likely the results we want.
             values  = YObject.values(results) || [];
             results = values.length === 1 ? values[0] : values;
+
+            if (!isArray(results)) {
+                results = [results];
+            }
         } else {
             results = [];
         }
@@ -1088,7 +1140,7 @@ AutoCompleteBase.prototype = {
 
             // Run the raw results through all configured result filters.
             for (i = 0, len = filters.length; i < len; ++i) {
-                raw = filters[i](query, raw);
+                raw = filters[i](query, raw.concat());
 
                 if (!raw || !raw.length) {
                     break;
@@ -1105,18 +1157,19 @@ AutoCompleteBase.prototype = {
                     raw.push(textLocatorMap[unformatted[i]]);
                 }
             } else {
-                unformatted = [].concat(raw);
+                unformatted = raw.concat();
             }
 
             // Run the unformatted results through the configured highlighter
             // (if any) to produce the first stage of formatted results.
             formatted = highlighter ? highlighter(query, unformatted) :
-                    [].concat(unformatted);
+                    unformatted.concat();
 
             // Run the highlighted results through the configured formatter (if
             // any) to produce the final formatted results.
             if (formatter) {
-                formatted = formatter(query, raw, formatted, unformatted);
+                formatted = formatter(query, raw.concat(), formatted.concat(),
+                        unformatted.concat());
             }
 
             // Finally, unroll all the result arrays into a single array of
@@ -1577,6 +1630,7 @@ List = Y.Base.create('autocompleteList', Y.Widget, [
 
         if (!inputNode) {
             Y.error('No inputNode specified.');
+            return;
         }
 
         this._inputNode  = inputNode;
@@ -1591,14 +1645,6 @@ List = Y.Base.create('autocompleteList', Y.Widget, [
         this[_CLASS_ITEM_ACTIVE] = this.getClassName(ITEM, 'active');
         this[_CLASS_ITEM_HOVER]  = this.getClassName(ITEM, 'hover');
         this[_SELECTOR_ITEM]     = '.' + this[_CLASS_ITEM];
-
-        if (!this.get('align.node')) {
-            this.set('align.node', inputNode);
-        }
-
-        if (!this.get(WIDTH)) {
-            this.set(WIDTH, inputNode.get('offsetWidth'));
-        }
 
         /**
          * Fires when an autocomplete suggestion is selected from the list by
@@ -1801,13 +1847,29 @@ List = Y.Base.create('autocompleteList', Y.Widget, [
     },
 
     /**
-     * Binds <code>inputNode</code> events.
+     * Binds <code>inputNode</code> events and behavior.
      *
      * @method _bindInput
      * @protected
      */
     _bindInput: function () {
-        this._listEvents.push(this._inputNode.on('blur', this._onInputBlur, this));
+        var inputNode  = this._inputNode,
+            tokenInput = this.get('tokenInput'),
+            alignNode  = (tokenInput && tokenInput.get('boundingBox')) ||
+                            inputNode;
+
+        // If this is a tokenInput, align with its bounding box. Otherwise,
+        // align with the inputNode.
+        if (!this.get('align.node')) {
+            this.set('align.node', alignNode);
+        }
+
+        if (!this.get(WIDTH)) {
+            this.set(WIDTH, alignNode.get('offsetWidth'));
+        }
+
+        // Attach inputNode events.
+        this._listEvents.push(inputNode.on('blur', this._onInputBlur, this));
     },
 
     /**
@@ -1937,7 +1999,7 @@ List = Y.Base.create('autocompleteList', Y.Widget, [
 
         if (results.length) {
             items = this._add(results);
-            this._ariaSay('ITEMS_AVAILABLE');
+            this._ariaSay('items_available');
         }
 
         if (this.get('activateFirstItem') && !this.get(ACTIVE_ITEM)) {
@@ -1967,7 +2029,10 @@ List = Y.Base.create('autocompleteList', Y.Widget, [
         this._inputNode.set('aria-expanded', visible);
         this._boundingBox.set('aria-hidden', !visible);
 
-        if (!visible) {
+        if (visible) {
+            // Force WidgetPositionAlign to refresh its alignment.
+            this._syncUIPosAlign();
+        } else {
             this.set(ACTIVE_ITEM, null);
             this._set(HOVERED_ITEM, null);
         }
@@ -2133,7 +2198,7 @@ List = Y.Base.create('autocompleteList', Y.Widget, [
         // TODO: support typeahead completion, etc.
         this._inputNode.focus();
         this._updateValue(text);
-        this._ariaSay('ITEM_SELECTED', {item: text});
+        this._ariaSay('item_selected', {item: text});
         this.hide();
     }
 }, {
@@ -2205,12 +2270,15 @@ List = Y.Base.create('autocompleteList', Y.Widget, [
             value: null
         },
 
-        // The "strings" attribute is documented in Widget.
+        /**
+         * Translatable strings used by the AutoCompleteList widget.
+         *
+         * @attribute strings
+         * @type Object
+         */
         strings: {
-            value: {
-                // These strings are used in ARIA live region announcements.
-                ITEM_SELECTED: '{item} selected.',
-                ITEMS_AVAILABLE: 'Suggestions are available. Use the up and down arrow keys to select suggestions.'
+            valueFn: function () {
+                return Y.Intl.get('autocomplete-list');
             }
         },
 
@@ -2260,8 +2328,62 @@ Y.AutoCompleteList = List;
 Y.AutoComplete = List;
 
 
-}, '@VERSION@' ,{skinnable:true, requires:['autocomplete-base', 'widget', 'widget-position', 'widget-position-align', 'widget-stack']});
+}, '@VERSION@' ,{skinnable:true, requires:['autocomplete-base', 'widget', 'widget-position', 'widget-position-align', 'widget-stack'], lang:['en']});
+YUI.add('autocomplete-plugin', function(Y) {
+
+/**
+ * Binds an AutoCompleteList instance to a Node instance.
+ *
+ * @module autocomplete
+ * @submodule autocomplete-list-plugin
+ */
+
+/**
+ * <p>
+ * Binds an AutoCompleteList instance to a Node instance.
+ * </p>
+ *
+ * <p>
+ * Example:
+ * </p>
+ *
+ * <pre>
+ * Y.one('#my-input').plug(Y.Plugin.AutoComplete, {
+ * &nbsp;&nbsp;source: 'select * from search.suggest where query="{query}"'
+ * });
+ * &nbsp;
+ * // You can now access the AutoCompleteList instance at Y.one('#my-input').ac
+ * </pre>
+ *
+ * @class Plugin.AutoComplete
+ * @extends AutoCompleteList
+ */
+
+var Plugin = Y.Plugin;
+
+function ACListPlugin(config) {
+    config.inputNode = config.host;
+
+    // Render by default.
+    if (!config.render && config.render !== false) {
+      config.render = true;
+    }
+
+    ACListPlugin.superclass.constructor.apply(this, arguments);
+}
+
+Y.extend(ACListPlugin, Y.AutoCompleteList, {}, {
+    NAME      : 'autocompleteListPlugin',
+    NS        : 'ac',
+    CSS_PREFIX: Y.ClassNameManager.getClassName('aclist')
+});
+
+Plugin.AutoComplete     = ACListPlugin;
+Plugin.AutoCompleteList = ACListPlugin;
 
 
-YUI.add('autocomplete', function(Y){}, '@VERSION@' ,{use:['autocomplete-base', 'autocomplete-list']});
+}, '@VERSION@' ,{requires:['autocomplete-list', 'node-pluginhost']});
+
+
+YUI.add('autocomplete', function(Y){}, '@VERSION@' ,{use:['autocomplete-base', 'autocomplete-list', 'autocomplete-plugin']});
 

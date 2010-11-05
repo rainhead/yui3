@@ -109,6 +109,7 @@
     <div id="smilies"></div>
 </div>
 
+<input type="text">
 <button id="getHTML">Get HTML</button>
 <button id="setHTML">Set HTML</button>
 <button id="focusEditor">Focus Editor</button>
@@ -195,6 +196,7 @@ This is some <strong>other</strong> loose test.
 <script type="text/javascript" src="js/createlink-base.js?bust=<?php echo(time()); ?>"></script>
 <script type="text/javascript" src="js/editor-bidi.js?bust=<?php echo(time()); ?>"></script>
 <script type="text/javascript" src="js/editor-para.js?bust=<?php echo(time()); ?>"></script>
+<script type="text/javascript" src="js/editor-br.js?bust=<?php echo(time()); ?>"></script>
 
 <script type="text/javascript">
 var yConfig = {
@@ -217,7 +219,7 @@ var yConfig = {
     throwFail: true
 };
 
-YUI(yConfig).use('node', 'selector-css3', 'base', 'editor-base', 'editor-para', 'frame', 'substitute', 'exec-command', 'editor-lists', 'createlink-base', 'editor-bidi', 'editor-lists', function(Y) {
+YUI(yConfig).use('node', 'selector-css3', 'base', 'editor-base', 'editor-para', 'editor-br', 'frame', 'substitute', 'exec-command', 'editor-lists', 'createlink-base', 'editor-bidi', 'editor-lists', function(Y) {
     //console.log(Y, Y.id);
 
     var bCount = 0,
@@ -374,7 +376,6 @@ YUI(yConfig).use('node', 'selector-css3', 'base', 'editor-base', 'editor-para', 
 
     editor = new Y.EditorBase({
         content: Y.one('#stub').get('innerHTML'),
-        defaultblock: 'div',
         /*
         linkedcss: [
             'http://yui.yahooapis.com/2.8.1/build/reset/reset.css',
@@ -384,6 +385,8 @@ YUI(yConfig).use('node', 'selector-css3', 'base', 'editor-base', 'editor-para', 
         */
         extracss: 'body { color: red; } p,div { border: 1px solid green; padding: 8px; margin: 15px; } div { border: 1px solid purple; }'
     });
+    editor.plug(Y.Plugin.EditorBR);
+    //editor.plug(Y.Plugin.EditorPara);
 
     /*
     setTimeout(function() {

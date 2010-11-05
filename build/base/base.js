@@ -73,6 +73,9 @@ YUI.add('base-base', function(Y) {
      */
     function Base() {
 
+        // So the object can be used as a hash key (as DD does)
+        Y.stamp(this);
+
         Attribute.call(this);
 
         // If Plugin.Host has been augmented [ through base-pluginhost ], setup it's
@@ -917,5 +920,5 @@ YUI.add('base-build', function(Y) {
 }, '@VERSION@' ,{requires:['base-base']});
 
 
-YUI.add('base', function(Y){}, '@VERSION@' ,{use:['base-base', 'base-pluginhost', 'base-build']});
+YUI.add('base', function(Y){}, '@VERSION@' ,{after:['attribute-complex'], use:['base-base', 'base-pluginhost', 'base-build']});
 

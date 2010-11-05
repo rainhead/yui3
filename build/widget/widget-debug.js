@@ -39,7 +39,7 @@ var L = Y.Lang,
     AUTO = "auto",
     SRC_NODE = "srcNode",
     BODY = "body",
-	TAB_INDEX = "tabIndex",
+    TAB_INDEX = "tabIndex",
     ID = "id",
     RENDER = "render",
     RENDERED = "rendered",
@@ -209,8 +209,8 @@ ATTRS[CONTENT_BOX] = {
  * @default 0
  */
 ATTRS[TAB_INDEX] = {
-	value: null,
-	validator: "_validTabIndex"
+    value: null,
+    validator: "_validTabIndex"
 };
 
 /**
@@ -813,19 +813,19 @@ Y.extend(Widget, Y.Base, {
      * @protected
      */
     _bindDOM : function() {
-		var oDocument = this.get(BOUNDING_BOX).get(OWNER_DOCUMENT);
+        var oDocument = this.get(BOUNDING_BOX).get(OWNER_DOCUMENT);
 
         // TODO: Perf Optimization: Use Widget.getByNode delegation, to get by 
         // with just one _onDocFocus subscription per sandbox, instead of one per widget
-		this._hDocFocus = oDocument.on("focus", this._onDocFocus, this);
+        this._hDocFocus = oDocument.on("focus", this._onDocFocus, this);
 
-		//	Fix for Webkit:
-		//	Document doesn't receive focus in Webkit when the user mouses 
-		//	down on it, so the "focused" attribute won't get set to the 
-		//	correct value.
-		if (WEBKIT) {
-			this._hDocMouseDown = oDocument.on("mousedown", this._onDocMouseDown, this);
-		}
+        //	Fix for Webkit:
+        //	Document doesn't receive focus in Webkit when the user mouses 
+        //	down on it, so the "focused" attribute won't get set to the 
+        //	correct value.
+        if (WEBKIT) {
+            this._hDocMouseDown = oDocument.on("mousedown", this._onDocMouseDown, this);
+        }
     },
 
     /**
@@ -935,27 +935,27 @@ Y.extend(Widget, Y.Base, {
      * @param Number
      */
     _uiSetTabIndex: function(index) {
-		var boundingBox = this.get(BOUNDING_BOX);
+        var boundingBox = this.get(BOUNDING_BOX);
 
-		if (L.isNumber(index)) {
-			boundingBox.set(TAB_INDEX, index);
-		} else {
-			boundingBox.removeAttribute(TAB_INDEX);
-		}
+        if (L.isNumber(index)) {
+            boundingBox.set(TAB_INDEX, index);
+        } else {
+            boundingBox.removeAttribute(TAB_INDEX);
+        }
     },
 
-	/**
-	 * @method _onDocMouseDown
-	 * @description "mousedown" event handler for the owner document of the 
-	 * widget's bounding box.
-	 * @protected
+    /**
+     * @method _onDocMouseDown
+     * @description "mousedown" event handler for the owner document of the 
+     * widget's bounding box.
+     * @protected
      * @param {EventFacade} evt The event facade for the DOM focus event
-	 */
-	_onDocMouseDown: function (evt) {
-		if (this._domFocus) {
- 			this._onDocFocus(evt);
-		}
-	},
+     */
+    _onDocMouseDown: function (evt) {
+        if (this._domFocus) {
+            this._onDocFocus(evt);
+        }
+    },
 
     /**
      * DOM focus event handler, used to sync the state of the Widget with the DOM
@@ -965,7 +965,7 @@ Y.extend(Widget, Y.Base, {
      * @param {EventFacade} evt The event facade for the DOM focus event
      */
     _onDocFocus: function (evt) {
-		this._domFocus = this.get(BOUNDING_BOX).contains(evt.target); // contains() checks invoking node also
+        this._domFocus = this.get(BOUNDING_BOX).contains(evt.target); // contains() checks invoking node also
         this._set(FOCUSED, this._domFocus, { src: UI });
     },
 
@@ -1126,46 +1126,11 @@ Y.Widget = Widget;
 
 
 }, '@VERSION@' ,{requires:['attribute', 'event-focus', 'base-base', 'base-pluginhost', 'node-base', 'node-style', 'node-event-delegate', 'classnamemanager']});
-YUI.add('widget-base-ie', function(Y) {
-
-var BOUNDING_BOX = "boundingBox",
-    CONTENT_BOX = "contentBox",
-    HEIGHT = "height",
-    OFFSET_HEIGHT = "offsetHeight",
-    EMPTY_STR = "",
-    heightReallyMinHeight = Y.UA.ie && Y.UA.ie < 7,
-    bbTempExpanding = Y.Widget.getClassName("tmp", "forcesize");
-
-    // borderBoxSupported = this._bbs = !(IE && IE < 8 && doc.compatMode != "BackCompat")
-
-Y.Widget.prototype._uiSizeCB = function(expand) {
-
-    var bb = this.get(BOUNDING_BOX),
-        cb = this.get(CONTENT_BOX);
-
-    if (expand) {
-        if (heightReallyMinHeight) {
-            bb.addClass(bbTempExpanding);
-        }
-
-        cb.set(OFFSET_HEIGHT, bb.get(OFFSET_HEIGHT));
-
-        if (heightReallyMinHeight) {
-            bb.removeClass(bbTempExpanding);
-        }
-    } else {
-        cb.setStyle(HEIGHT, EMPTY_STR);
-    }
-};
-
-
-}, '@VERSION@' ,{requires:['widget-base']});
 YUI.add('widget-uievents', function(Y) {
 
 var UI_EVENT_REGEX = /(\w+):(\w+)/,
     UI_EVENT_REGEX_REPLACE = "$2",
     BOUNDING_BOX = "boundingBox",
-    PARENT_NODE = "parentNode",
     Widget = Y.Widget,
     RENDER = "render",
     L = Y.Lang;
@@ -1230,8 +1195,7 @@ Y.mix(Widget.prototype, {
     _createUIEvent: function (type) {
 
         var uiEvtNode = this._getUIEventNode(),
-            parentNode = uiEvtNode.get(PARENT_NODE),
-            key = (Y.stamp(parentNode) + type),
+            key = (Y.stamp(uiEvtNode) + type),
             info,
             handle;
 
@@ -1244,7 +1208,7 @@ Y.mix(Widget.prototype, {
         if (!info) {
             Y.log("Creating delegate for the " + type + " event.", "info", "widget");
 
-            handle = parentNode.delegate(type, function (evt) {
+            handle = uiEvtNode.delegate(type, function (evt) {
 
                 var widget = Widget.getByNode(this);
                 //  Make the DOM event a property of the custom event
@@ -1540,5 +1504,5 @@ Y.Widget.prototype.getSkinName = function () {
 }, '@VERSION@' ,{requires:['widget-base']});
 
 
-YUI.add('widget', function(Y){}, '@VERSION@' ,{use:['widget-base', 'widget-base-ie', 'widget-uievents', 'widget-htmlparser', 'widget-skin']});
+YUI.add('widget', function(Y){}, '@VERSION@' ,{use:['widget-base', 'widget-uievents', 'widget-htmlparser', 'widget-skin']});
 

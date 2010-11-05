@@ -380,7 +380,8 @@
         }
         
         Y.all('.hr').addClass('yui-skip').addClass('yui-non');
-
+        
+        /*
         nodes.each(function(n) {
             n.addClass(n._yuid);
             n.setStyle(FONT_FAMILY, '');
@@ -388,6 +389,7 @@
                 n.removeAttribute('style');
             }
         });
+        */
         
         return html;
     };
@@ -400,7 +402,12 @@
     */
     Y.Selection.resolve = function(n) {
         if (n && n.nodeType === 3) {
-            n = n.parentNode;
+            //Adding a try/catch here because in rare occasions IE will
+            //Throw a error accessing the parentNode of a stranded text node.
+            //In the case of Ctrl+Z (Undo)
+            try {
+                n = n.parentNode;
+            } catch (re) {}
         }
         return Y.one(n);
     };
@@ -481,12 +488,18 @@
     * @method cleanCursor
     */
     Y.Selection.cleanCursor = function() {
-        var cur = Y.all('br.yui-cursor');
+        var cur, sel = 'br.yui-cursor';
+        cur = Y.all(sel);
         if (cur.size()) {
             cur.each(function(b) {
-                var c = b.get('parentNode.parentNode.childNodes');
+                var c = b.get('parentNode.parentNode.childNodes'), html;
                 if (c.size() > 1) {
                     b.remove();
+                } else {
+                    html = Y.Selection.getText(c.item(0));
+                    if (html !== '') {
+                        b.remove();
+                    }
                 }
             });
         }

@@ -313,20 +313,6 @@ Y_Node.one = function(node) {
 };
 
 /**
- * Returns a single Node instance bound to the node or the
- * first element matching the given selector.
- * @method Y.get
- * @deprecated Use Y.one
- * @static
- * @param {String | HTMLElement} node a node or Selector
- * @param {Y.Node || HTMLElement} doc an optional document to scan. Defaults to Y.config.doc.
- */
-Y_Node.get = function() {
-    Y.log('Y.get is deprecated, use Y.one', 'warn', 'deprecated');
-    return Y_Node.one.apply(Y_Node, arguments);
-};
-
-/**
  * Creates a new dom node using the provided markup string.
  * @method create
  * @static
@@ -403,24 +389,6 @@ Y_Node.ATTRS = {
             Y_DOM.setValue(this._node, val);
             return val;
         }
-    },
-
-
-    /*
-     * Flat data store for off-DOM usage
-     * @config data
-     * @type any
-     * @deprecated Use getData/setData
-     */
-    data: {
-        getter: function() {
-            return this._dataVal;
-        },
-        setter: function(val) {
-            this._dataVal = val;
-            return val;
-        },
-        value: null
     }
 };
 
@@ -741,18 +709,6 @@ Y.mix(Y_Node.prototype, {
     },
 
     /**
-     * Retrieves a Node instance of nodes based on the given CSS selector.
-     * @method query
-     * @deprecated Use one()
-     * @param {string} selector The CSS selector to test against.
-     * @return {Node} A Node instance for the matching HTMLElement.
-     */
-    query: function(selector) {
-        Y.log('query() is deprecated, use one()', 'warn', 'deprecated');
-        return this.one(selector);
-    },
-
-    /**
      * Retrieves a nodeList based on the given CSS selector.
      * @method all
      *
@@ -764,18 +720,6 @@ Y.mix(Y_Node.prototype, {
         nodelist._query = selector;
         nodelist._queryRoot = this._node;
         return nodelist;
-    },
-
-    /**
-     * Retrieves a nodeList based on the given CSS selector.
-     * @method queryAll
-     * @deprecated Use all()
-     * @param {string} selector The CSS selector to test against.
-     * @return {NodeList} A NodeList instance for the matching HTMLCollection/Array.
-     */
-    queryAll: function(selector) {
-        Y.log('queryAll() is deprecated, use all()', 'warn', 'deprecated');
-        return this.all(selector);
     },
 
     // TODO: allow fn test
@@ -923,45 +867,6 @@ Y.mix(Y_Node.prototype, {
 
         ret = node[method](a, b, c, d, e);
         return Y_Node.scrubVal(ret, this);
-    },
-
-    /**
-     * Applies the given function to each Node in the NodeList.
-     * @method each
-     * @deprecated Use NodeList
-     * @param {Function} fn The function to apply
-     * @param {Object} context optional An optional context to apply the function with
-     * Default context is the NodeList instance
-     * @chainable
-     */
-    each: function(fn, context) {
-        context = context || this;
-        Y.log('each is deprecated on Node', 'warn', 'deprecated');
-        return fn.call(context, this);
-    },
-
-    /**
-     * Retrieves the Node instance at the given index.
-     * @method item
-     * @deprecated Use NodeList
-     *
-     * @param {Number} index The index of the target Node.
-     * @return {Node} The Node instance at the given index.
-     */
-    item: function(index) {
-        Y.log('item is deprecated on Node', 'warn', 'deprecated');
-        return this;
-    },
-
-    /**
-     * Returns the current number of items in the Node.
-     * @method size
-     * @deprecated Use NodeList
-     * @return {Int} The number of items in the Node.
-     */
-    size: function() {
-        Y.log('size is deprecated on Node', 'warn', 'deprecated');
-        return this._node ? 1 : 0;
     },
 
     /**
@@ -1162,20 +1067,54 @@ Y.mix(Y_Node.prototype, {
     SHOW_TRANSITION: null,
     HIDE_TRANSITION: null,
 
+    /**
+     * Makes the node visible.
+     * If the "transition" module is loaded, show optionally
+     * animates the showing of the node using either the default
+     * transition effect ('fadeIn'), or the given named effect.
+     * @method show
+     * @param {String} name A named Transition effect to use as the show effect. 
+     * @param {Object} config Options to use with the transition. 
+     * @param {Function} callback An optional function to run after the transition completes. 
+     * @chainable
+     */
     show: function(name, config, callback) {
         this._show();
         return this;
     },
 
+    /**
+     * The implementation for showing nodes.
+     * Default is to toggle the style.display property.
+     * @protected
+     * @chainable
+     */
     _show: function() {
         this.setStyle('display', '');
     },
 
+    /**
+     * Hides the node.
+     * If the "transition" module is loaded, hide optionally
+     * animates the hiding of the node using either the default
+     * transition effect ('fadeOut'), or the given named effect.
+     * @method hide
+     * @param {String} name A named Transition effect to use as the show effect. 
+     * @param {Object} config Options to use with the transition. 
+     * @param {Function} callback An optional function to run after the transition completes. 
+     * @chainable
+     */
     hide: function(name, config, callback) {
         this._hide();
         return this;
     },
 
+    /**
+     * The implementation for hiding nodes.
+     * Default is to toggle the style.display property.
+     * @protected
+     * @chainable
+     */
     _hide: function() {
         this.setStyle('display', 'none');
     },
@@ -1184,12 +1123,17 @@ Y.mix(Y_Node.prototype, {
         return (this.get('nodeType') === 11);
     },
 
+    /**
+     * Removes all of the child nodes from the node.
+     * @param {Boolean} destroy Whether the nodes should also be destroyed. 
+     * @chainable
+     */
     empty: function(destroy) {
         this.get('childNodes').remove(destroy);
+        return this;
     }
 
 }, true);
 
 Y.Node = Y_Node;
-Y.get = Y.Node.get;
 Y.one = Y.Node.one;

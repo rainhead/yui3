@@ -152,7 +152,7 @@ Y.extend(DOMEventFacade, Object, {
         this.pageX = x;
         this.pageY = y;
 
-        c = e.keyCode || e.charCode || 0;
+        c = e.keyCode || e.charCode;
 
         if (ua.webkit && (c in webkitKeymap)) {
             c = webkitKeymap[c];
@@ -160,8 +160,9 @@ Y.extend(DOMEventFacade, Object, {
 
         this.keyCode = c;
         this.charCode = c;
-        this.which = e.which;
-        this.button = e.button;
+        this.which = e.which || e.charCode || c;
+        // this.button = e.button;
+        this.button = this.which;
 
         this.target = resolve(e.target);
         this.currentTarget = resolve(currentTarget);
@@ -1963,7 +1964,7 @@ Y.mix(SyntheticEvent, {
                 return handle;
             }
 
-            Y.each(nodes, function (node) {
+            Y.Array.each(nodes, function (node) {
                 var subArgs = args.slice(),
                     extra, filter;
 

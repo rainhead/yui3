@@ -60,6 +60,7 @@ List = Y.Base.create('autocompleteList', Y.Widget, [
 
         if (!inputNode) {
             Y.error('No inputNode specified.');
+            return;
         }
 
         this._inputNode  = inputNode;
@@ -74,14 +75,6 @@ List = Y.Base.create('autocompleteList', Y.Widget, [
         this[_CLASS_ITEM_ACTIVE] = this.getClassName(ITEM, 'active');
         this[_CLASS_ITEM_HOVER]  = this.getClassName(ITEM, 'hover');
         this[_SELECTOR_ITEM]     = '.' + this[_CLASS_ITEM];
-
-        if (!this.get('align.node')) {
-            this.set('align.node', inputNode);
-        }
-
-        if (!this.get(WIDTH)) {
-            this.set(WIDTH, inputNode.get('offsetWidth'));
-        }
 
         /**
          * Fires when an autocomplete suggestion is selected from the list by
@@ -284,13 +277,29 @@ List = Y.Base.create('autocompleteList', Y.Widget, [
     },
 
     /**
-     * Binds <code>inputNode</code> events.
+     * Binds <code>inputNode</code> events and behavior.
      *
      * @method _bindInput
      * @protected
      */
     _bindInput: function () {
-        this._listEvents.push(this._inputNode.on('blur', this._onInputBlur, this));
+        var inputNode  = this._inputNode,
+            tokenInput = this.get('tokenInput'),
+            alignNode  = (tokenInput && tokenInput.get('boundingBox')) ||
+                            inputNode;
+
+        // If this is a tokenInput, align with its bounding box. Otherwise,
+        // align with the inputNode.
+        if (!this.get('align.node')) {
+            this.set('align.node', alignNode);
+        }
+
+        if (!this.get(WIDTH)) {
+            this.set(WIDTH, alignNode.get('offsetWidth'));
+        }
+
+        // Attach inputNode events.
+        this._listEvents.push(inputNode.on('blur', this._onInputBlur, this));
     },
 
     /**
@@ -420,7 +429,7 @@ List = Y.Base.create('autocompleteList', Y.Widget, [
 
         if (results.length) {
             items = this._add(results);
-            this._ariaSay('ITEMS_AVAILABLE');
+            this._ariaSay('items_available');
         }
 
         if (this.get('activateFirstItem') && !this.get(ACTIVE_ITEM)) {
@@ -450,7 +459,10 @@ List = Y.Base.create('autocompleteList', Y.Widget, [
         this._inputNode.set('aria-expanded', visible);
         this._boundingBox.set('aria-hidden', !visible);
 
-        if (!visible) {
+        if (visible) {
+            // Force WidgetPositionAlign to refresh its alignment.
+            this._syncUIPosAlign();
+        } else {
             this.set(ACTIVE_ITEM, null);
             this._set(HOVERED_ITEM, null);
         }
@@ -616,7 +628,7 @@ List = Y.Base.create('autocompleteList', Y.Widget, [
         // TODO: support typeahead completion, etc.
         this._inputNode.focus();
         this._updateValue(text);
-        this._ariaSay('ITEM_SELECTED', {item: text});
+        this._ariaSay('item_selected', {item: text});
         this.hide();
     }
 }, {
@@ -688,12 +700,15 @@ List = Y.Base.create('autocompleteList', Y.Widget, [
             value: null
         },
 
-        // The "strings" attribute is documented in Widget.
+        /**
+         * Translatable strings used by the AutoCompleteList widget.
+         *
+         * @attribute strings
+         * @type Object
+         */
         strings: {
-            value: {
-                // These strings are used in ARIA live region announcements.
-                ITEM_SELECTED: '{item} selected.',
-                ITEMS_AVAILABLE: 'Suggestions are available. Use the up and down arrow keys to select suggestions.'
+            valueFn: function () {
+                return Y.Intl.get('autocomplete-list');
             }
         },
 
@@ -743,4 +758,4 @@ Y.AutoCompleteList = List;
 Y.AutoComplete = List;
 
 
-}, '@VERSION@' ,{skinnable:true, requires:['autocomplete-base', 'widget', 'widget-position', 'widget-position-align', 'widget-stack']});
+}, '@VERSION@' ,{skinnable:true, requires:['autocomplete-base', 'widget', 'widget-position', 'widget-position-align', 'widget-stack'], lang:['en']});

@@ -3,8 +3,11 @@
         "submodules": {
             "datatable-base": {
                 "requires": [
-                    "recordset",
-                    "widget"
+                    "recordset-base",
+                    "widget",
+                    "intl",
+                    "substitute",
+                    "event-mouseenter"
                 ],
                 "skinnable": true
             },
@@ -18,7 +21,8 @@
 			"datatable-scroll": {
 				"requires": [
 					"datatable-base",
-					"plugin"
+					"plugin",
+					"stylesheet"
 				]
 			}
         }

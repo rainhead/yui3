@@ -1098,8 +1098,6 @@ YUI.add('dd-drag', function(Y) {
                 var n = Y.one(node);
                 if (!n) {
                     Y.error('DD.Drag: Invalid Node Given: ' + node);
-                } else {
-                    n = n.item(0);
                 }
                 return n;
             }
@@ -2551,6 +2549,7 @@ YUI.add('dd-constrain', function(Y) {
 	    initializer: function() {
 			this._createEvents();
 
+	        this.get(HOST).on('drag:end', Y.bind(this._handleEnd, this));
 	        this.get(HOST).on('drag:start', Y.bind(this._handleStart, this));
 	        this.get(HOST).after('drag:align', Y.bind(this.align, this));
 	        this.get(HOST).after('drag:drag', Y.bind(this.drag, this));
@@ -2578,6 +2577,15 @@ YUI.add('dd-constrain', function(Y) {
 	            });
 	        }, this);
 		},
+		/**
+	    * @private
+	    * @method _handleEnd
+	    * @description Fires on drag:end
+	    */
+	    _handleEnd: function() {
+			this._lastTickYFired = null;
+			this._lastTickXFired = null;
+	    },
 	    /**
 	    * @private
 	    * @method _handleStart
@@ -3288,7 +3296,6 @@ YUI.add('dd-scroll', function(Y) {
                         Y.error('DDNodeScroll: Invalid Node Given: ' + node);
                     }
                 } else {
-                    n = n.item(0);
                     this.set(PARENT_SCROLL, n);
                 }
                 return n;
@@ -3317,7 +3324,7 @@ YUI.add('dd-scroll', function(Y) {
 
 
 
-}, '@VERSION@' ,{optional:['dd-proxy'], requires:['dd-drag'], skinnable:false});
+}, '@VERSION@' ,{requires:['dd-drag'], skinnable:false, optional:['dd-proxy']});
 YUI.add('dd-drop', function(Y) {
 
 
@@ -4196,8 +4203,8 @@ YUI.add('dd-delegate', function(Y) {
 
 
 
-}, '@VERSION@' ,{optional:['dd-drop-plugin'], requires:['dd-drag', 'event-mouseenter'], skinnable:false});
+}, '@VERSION@' ,{requires:['dd-drag', 'event-mouseenter'], skinnable:false, optional:['dd-drop-plugin']});
 
 
-YUI.add('dd', function(Y){}, '@VERSION@' ,{use:['dd-ddm-base', 'dd-ddm', 'dd-ddm-drop', 'dd-drag', 'dd-proxy', 'dd-constrain', 'dd-drop', 'dd-scroll', 'dd-delegate'], skinnable:false});
+YUI.add('dd', function(Y){}, '@VERSION@' ,{skinnable:false, use:['dd-ddm-base', 'dd-ddm', 'dd-ddm-drop', 'dd-drag', 'dd-proxy', 'dd-constrain', 'dd-drop', 'dd-scroll', 'dd-delegate']});
 
